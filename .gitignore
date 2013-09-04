@@ -1,4 +1,8 @@
-# Build folders
+# External Libraries / Header Files
+include/*
+lib/*
+
+# Build Folders
 obj
 bin
 
