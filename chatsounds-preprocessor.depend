@@ -1,6 +1,7 @@
 # depslib dependency file v1.0
-1378319133 source:e:\kevin\meine software\chatsounds-preprocessor\main.cpp
+1378321348 source:e:\kevin\meine software\chatsounds-preprocessor\main.cpp
 	<iostream>
+	"version.h"
 	<tuple>
 	<deque>
 	<boost/algorithm/string.hpp>
@@ -7672,4 +7673,8 @@
 1368460251 e:\kevin\meine software\chatsounds-preprocessor\include\bass.h
 	<wtypes.h>
 	<stdint.h>
+
+1378321724 e:\kevin\meine software\chatsounds-preprocessor\version.h
+
+1378320986 source:e:\kevin\meine software\chatsounds-preprocessor\version.h
 

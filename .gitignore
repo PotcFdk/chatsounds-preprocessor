@@ -1,3 +1,6 @@
+# CodeBlocks Noise
+chatsounds-preprocessor.layout
+
 # External Libraries / Header Files
 include/*
 lib/*

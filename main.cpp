@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include "version.h"
+
 // List
 #include <tuple>
 #include <deque>
@@ -130,17 +132,25 @@ void ProcessSoundFolders(boost::filesystem::path path)
         {
             SoundMasterList list = ProcessSoundFolder(it->path());
             BuildSoundList(list, it->path().filename().string());
-            cout << "Generated List: " << it->path().filename() << endl;
+            cout << "Generated list: " << it->path().filename() << endl;
         }
     }
 }
 
 
-
 int main()
 {
+    cout << "chatsounds-preprocessor v" +
+            boost::lexical_cast<std::string>(AutoVersion::MAJOR) + "." +
+            boost::lexical_cast<std::string>(AutoVersion::MINOR) + "." +
+            boost::lexical_cast<std::string>(AutoVersion::BUILD) + " by PotcFdk  (Build " +
+            boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + ")" << endl << endl;
+
     BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
 
     ProcessSoundFolders(boost::filesystem::path(SOUNDPATH));
+
+    cout << "List generation has finished." << endl;
+
     return 0;
 }
