@@ -1,6 +1,8 @@
 # depslib dependency file v1.0
-1378306581 source:e:\kevin\meine software\chatsounds-preprocessor\main.cpp
+1378310778 source:e:\kevin\meine software\chatsounds-preprocessor\main.cpp
 	<iostream>
+	<tuple>
+	<deque>
 	<boost/algorithm/string.hpp>
 	<boost/filesystem.hpp>
 
