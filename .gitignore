@@ -1,3 +1,10 @@
+# Build folders
+obj
+bin
+
+# Compiled Binaries
+*.exe
+
 # Compiled Object files
 *.slo
 *.lo
