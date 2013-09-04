@@ -8,7 +8,16 @@ using namespace std;
 
 void GetSoundInfo(boost::filesystem::path path, bool soundgroup)
 {
-    cout << path << endl;
+    if (!path.has_extension())
+        return;
+
+    string ext = path.extension().string();
+    boost::algorithm::to_lower(ext);
+
+    if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
+    {
+
+    }
 }
 
 void ProcessSounds(boost::filesystem::path path, bool soundgroup)
