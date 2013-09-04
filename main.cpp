@@ -137,6 +137,13 @@ void ProcessSoundFolders(boost::filesystem::path path)
     }
 }
 
+void ClearFolder(boost::filesystem::path path)
+{
+    for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+    {
+        boost::filesystem::remove_all(*it);
+    }
+}
 
 int main()
 {
@@ -146,8 +153,13 @@ int main()
             boost::lexical_cast<std::string>(AutoVersion::BUILD) + " by PotcFdk  (Build " +
             boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + ")" << endl << endl;
 
+    cout << "Deleting old lists..." << endl;
+    ClearFolder(LISTPATH);
+
+    cout << "Initializing BASS Library..." << endl;
     BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
 
+    cout << endl;
     ProcessSoundFolders(boost::filesystem::path(SOUNDPATH));
 
     cout << "List generation has finished." << endl;
