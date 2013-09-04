@@ -62,9 +62,9 @@ void ProcessSounds(boost::filesystem::path path, bool soundgroup, SoundList * li
         }
         else
         {
-            list->push_back(
-                GetSoundInfo(it->path(), soundgroup)
-            );
+            SoundInfo soundinfo = GetSoundInfo(it->path(), soundgroup);
+            if (get<2>(soundinfo) > 0)
+                list->push_back(soundinfo);
         }
     }
 }
