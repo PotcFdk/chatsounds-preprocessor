@@ -110,8 +110,6 @@ void BuildSoundList(SoundMasterList list, string listname)
             soundlist += "{path=\"" + get<0>(sndinfo) + "\",length=" + boost::lexical_cast<std::string>(get<1>(sndinfo)) + "},";
         }
         soundlist += "}\n";
-        //SoundInfo sndinfo = *it;
-        //soundlist += "{\"" + get<0>(sndinfo) + "\",\"" + get<1>(sndinfo) + "\"," + boost::lexical_cast<std::string>(get<2>(sndinfo)) + "},";
     }
 
     soundlist += "c.EndList()";
