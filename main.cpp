@@ -8,12 +8,26 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
+// libbass
+#include <bass.h>
+
 using namespace std;
 
 // Defines
 
 typedef tuple<string, string, double> SoundInfo;
 typedef deque<SoundInfo> SoundList;
+
+
+
+
+
+double GetSoundDuration(boost::filesystem::path path)
+{
+    HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
+    QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
+    return BASS_ChannelBytes2Seconds(sound, bytecount);
+}
 
 SoundInfo GetSoundInfo(boost::filesystem::path path, bool soundgroup)
 {
@@ -30,7 +44,7 @@ SoundInfo GetSoundInfo(boost::filesystem::path path, bool soundgroup)
             else
                 name = path.filename().replace_extension("").string();
 
-            double duration = 0;
+            double duration = GetSoundDuration(path);
 
             return SoundInfo(path.string(), name, duration);
         }
@@ -69,13 +83,15 @@ void ProcessSoundFolders(boost::filesystem::path path)
     for(SoundList::const_iterator it=list.begin() ; it < list.end(); it++ )
     {
         SoundInfo sndinfo = *it;
-        cout << get<1>(sndinfo) << endl;
+        cout << get<1>(sndinfo) << "\tDuration: " << get<2>(sndinfo) << endl;
     }
 }
 
 
 int main()
 {
+    BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
+
     ProcessSoundFolders(boost::filesystem::path("sound/chatsounds/autoadd"));
     return 0;
 }
