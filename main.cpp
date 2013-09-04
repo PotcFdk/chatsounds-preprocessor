@@ -33,7 +33,9 @@ double GetSoundDuration(boost::filesystem::path path) // Gets the duration of a 
 {
     HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
     QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
-    return BASS_ChannelBytes2Seconds(sound, bytecount);
+    double length = BASS_ChannelBytes2Seconds(sound, bytecount);
+    BASS_StreamFree(sound);
+    return length;
 }
 
 SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist about a sound.
@@ -62,16 +64,19 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
         }
     }
     NamedSoundList nlist(path.filename().string(), list);
+    list.clear();
+    list.shrink_to_fit();
     return nlist;
 }
 
-void ProcessSounds(boost::filesystem::path path, SoundMasterList * list) // Scans a subdirectory and compiles all the soundinfos into a list.
+SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
+    SoundMasterList list;
     for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
     {
         if ( is_directory(it->status()) )
         {
-            list->push_back(ProcessSoundGroup(it->path()));
+            list.push_back(ProcessSoundGroup(it->path()));
         }
         else if ( boost::filesystem::is_regular_file(it->status()) )
         {
@@ -80,22 +85,23 @@ void ProcessSounds(boost::filesystem::path path, SoundMasterList * list) // Scan
             {
                 SoundList sl;
                 sl.push_back(soundinfo);
-                list->push_back(NamedSoundList(it->path().filename().replace_extension("").string(),sl));
+                list.push_back(NamedSoundList(it->path().filename().replace_extension("").string(),sl));
+                sl.clear();
+                sl.shrink_to_fit();
             }
         }
     }
+    return list;
 }
 
 SoundMasterList ProcessSoundFolder(boost::filesystem::path path)
 {
-    SoundMasterList list;
-
     if (is_directory(path))
     {
-        ProcessSounds(path, &list);
+        SoundMasterList list = ProcessSounds(path);
+        return list;
     }
-
-    return list;
+    return SoundMasterList();
 }
 
 void BuildSoundList(SoundMasterList list, string listname)
