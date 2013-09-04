@@ -7,6 +7,7 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 // libbass
 #include <bass.h>
@@ -46,7 +47,7 @@ SoundInfo GetSoundInfo(boost::filesystem::path path, bool soundgroup)
 
             double duration = GetSoundDuration(path);
 
-            return SoundInfo(path.string(), name, duration);
+            return SoundInfo(path.generic_string(), name, duration);
         }
     }
     return SoundInfo("","",0);
@@ -69,7 +70,7 @@ void ProcessSounds(boost::filesystem::path path, bool soundgroup, SoundList * li
     }
 }
 
-void ProcessSoundFolders(boost::filesystem::path path)
+SoundList ProcessSoundFolders(boost::filesystem::path path)
 {
     SoundList list;
     for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
@@ -83,7 +84,31 @@ void ProcessSoundFolders(boost::filesystem::path path)
     for(SoundList::const_iterator it=list.begin() ; it < list.end(); it++ )
     {
         SoundInfo sndinfo = *it;
-        cout << get<1>(sndinfo) << "\tDuration: " << get<2>(sndinfo) << endl;
+        cout << "processed file: " << get<1>(sndinfo) << endl;
+    }
+
+    return list;
+}
+
+void BuildSoundList(boost::filesystem::path path)
+{
+    SoundList list = ProcessSoundFolders(path);
+
+    string soundlist = "{";
+
+    for(SoundList::const_iterator it=list.begin() ; it < list.end(); it++ )
+    {
+        SoundInfo sndinfo = *it;
+        soundlist += "{\"" + get<0>(sndinfo) + "\",\"" + get<1>(sndinfo) + "\"," + boost::lexical_cast<std::string>(get<2>(sndinfo)) + "},";
+    }
+
+    soundlist += "}";
+
+    std::ofstream f( "soundlist.txt" );
+    if ( !f.fail() )
+    {
+        f << soundlist;
+        f.close();
     }
 }
 
@@ -92,6 +117,6 @@ int main()
 {
     BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
 
-    ProcessSoundFolders(boost::filesystem::path("sound/chatsounds/autoadd"));
+    BuildSoundList(boost::filesystem::path("sound/chatsounds/autoadd"));
     return 0;
 }
