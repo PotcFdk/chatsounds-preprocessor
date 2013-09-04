@@ -114,7 +114,7 @@ void BuildSoundList(SoundMasterList list, string listname)
 
     soundlist += "c.EndList()";
 
-    std::ofstream f( string(LISTPATH) + "/" + listname + ".txt" );
+    std::ofstream f( string(LISTPATH) + "/" + listname + ".lua" );
     if ( !f.fail() )
     {
         f << soundlist;
