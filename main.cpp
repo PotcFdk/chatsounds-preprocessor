@@ -26,6 +26,7 @@ typedef deque<NamedSoundList> SoundMasterList;
 
 #define LISTPATH "lua/chatsounds/lists_nosend"
 #define SOUNDPATH "sound/chatsounds/autoadd"
+#define SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
 
 
 
@@ -47,7 +48,10 @@ SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist ab
 
         if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
         {
-            return SoundInfo(path.generic_string(),GetSoundDuration(path));
+            string s_path = path.generic_string();
+            double duration = GetSoundDuration(s_path);
+            boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
+            return SoundInfo(s_path, duration);
         }
     }
     return SoundInfo("",0);
