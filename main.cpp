@@ -10,6 +10,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/bind.hpp>
+#include <boost/format.hpp>
 
 // libbass
 #include <bass.h>
@@ -136,13 +138,29 @@ void BuildSoundList(SoundMasterList list, string listname)
 
 void ProcessSoundFolders(boost::filesystem::path path)
 {
+    const int d_count = std::count_if(
+                boost::filesystem::directory_iterator(path),
+                boost::filesystem::directory_iterator(),
+                boost::bind( static_cast<bool(*)(const boost::filesystem::path & path)>(boost::filesystem::is_directory), boost::bind( &boost::filesystem::directory_entry::path, _1 ) ));
+
+    int d_i = 1;
+
     for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
     {
         if ( is_directory(it->status()) )
         {
+            #define P_LENGTH 57
+
+            string p1 = '"' + it->path().filename().string() + '"' + " (" + boost::lexical_cast<string>(d_i) + '/' + boost::lexical_cast<string>(d_count) + ") ...";
+            p1 = p1.size() >= P_LENGTH ? "..." + p1.substr(p1.size() - P_LENGTH + 3) : p1 + string(P_LENGTH - p1.size(), ' ');
+
+            cout << "Generating list: " << p1;
+
             SoundMasterList list = ProcessSoundFolder(it->path());
             BuildSoundList(list, it->path().filename().string());
-            cout << "Generated list: " << it->path().filename() << endl;
+
+            cout << " done" << endl;
+            d_i++;
         }
     }
 }
