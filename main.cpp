@@ -41,7 +41,7 @@ typedef deque<NamedSoundList> SoundMasterList;
 typedef unordered_map<string, int> SoundCache;
 
 #define CACHE_VERSION 1
-#define CACHE_PATH "cache.cpc"
+#define CACHE_PATH "chatsounds-preprocessor-cache"
 
 
 bool bass_init = false;
@@ -277,7 +277,6 @@ SoundCache GenerateSoundCache()
         {
             for(boost::filesystem::directory_iterator its(it->path()); its != boost::filesystem::directory_iterator(); ++its)
             {
-
                 if ( is_directory(its->status()) )
                 {
                     for(boost::filesystem::directory_iterator itg(its->path()); itg != boost::filesystem::directory_iterator(); ++itg)
@@ -304,6 +303,8 @@ SoundCache GenerateSoundCache()
 unordered_map<string, bool> GetModifiedSoundSets(SoundCache cache1, SoundCache cache2)
 {
     unordered_map<string, bool> list;
+
+    // Add differences to list:
 
     for ( auto it = cache1.begin(); it != cache1.end(); ++it )
     {
@@ -352,6 +353,33 @@ unordered_map<string, bool> GetModifiedSoundSets(SoundCache cache1, SoundCache c
     return list;
 }
 
+void AddMissingLists(unordered_map<string, bool> * list, SoundCache soundcache)
+{
+    for ( auto it = soundcache.begin(); it != soundcache.end(); ++it )
+    {
+        boost::filesystem::path path(it->first);
+
+        int i = 0;
+
+        while (path.parent_path().filename() != "autoadd")
+        {
+            path = path.parent_path();
+
+            if (i > 300)
+                throw 33;
+            else
+                i++;
+        }
+
+        string name = path.filename().string();
+        string list_path = string(LISTPATH) + "/" + name + ".lua";
+        if (!boost::filesystem::is_regular_file(list_path))
+        {
+            (*list)[name] = true;
+        }
+    }
+}
+
 void WriteSoundCache(SoundCache soundcache)
 {
     std::ofstream ofs(CACHE_PATH, ios::binary);
@@ -372,6 +400,28 @@ void WriteSoundCache(SoundCache soundcache)
 }
 
 
+
+// Cleanup
+
+void CleanupFolder(boost::filesystem::path path)
+{
+    for (boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+    {
+        if (is_directory(it->status()))
+        {
+            boost::filesystem::path pp = it->path();
+
+            CleanupFolder(pp);
+
+            if( boost::filesystem::is_empty( pp ))
+            {
+               boost::filesystem::remove_all(pp);
+            }
+        }
+    }
+}
+
+
 // Modes
 
 int Main_DiffUpdate()
@@ -379,6 +429,10 @@ int Main_DiffUpdate()
     cout << "Running in DIFF mode." << endl;
 
     InitBass();
+
+    cout << "Cleaning up sound folder..." << endl;
+    CleanupFolder(SOUNDPATH);
+
     SoundCache soundcache;
     try
     {
@@ -403,6 +457,7 @@ int Main_DiffUpdate()
     {
         SoundCache new_soundcache = GenerateSoundCache();
         unordered_map<string, bool> SoundCacheDiff = GetModifiedSoundSets(soundcache, new_soundcache);
+        AddMissingLists(&SoundCacheDiff, new_soundcache);
         UpdateSoundSets(SoundCacheDiff);
         WriteSoundCache(new_soundcache);
     }
@@ -421,8 +476,17 @@ int Main_FullUpdate()
     cout << "Running in FULL mode." << endl;
 
     InitBass();
+    cout << "Resetting cache..." << endl;
+
+    try { boost::filesystem::remove(CACHE_PATH); }
+        catch (boost::filesystem::filesystem_error e)
+            { cout << "Cannot reset cache: " << endl << "  " << e.what() << endl << endl; }
+
     cout << "Deleting old lists..." << endl;
     ClearFolder(LISTPATH);
+
+    cout << "Cleaning up sound folder..." << endl;
+    CleanupFolder(SOUNDPATH);
 
     cout << endl;
     ProcessSoundFolders(boost::filesystem::path(SOUNDPATH));
