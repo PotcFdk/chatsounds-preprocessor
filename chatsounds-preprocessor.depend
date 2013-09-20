@@ -7678,7 +7678,7 @@
 
 1378320986 source:e:\kevin\meine software\chatsounds-preprocessor\version.h
 
-1379699810 source:e:\git_repos\chatsounds-preprocessor\main.cpp
+1379707517 source:e:\git_repos\chatsounds-preprocessor\main.cpp
 	<iostream>
 	"version.h"
 	<tuple>
@@ -7689,11 +7689,11 @@
 	<boost/lexical_cast.hpp>
 	<boost/bind.hpp>
 	<boost/format.hpp>
-	<boost/archive/text_oarchive.hpp>
-	<boost/archive/text_iarchive.hpp>
+	<boost/archive/binary_oarchive.hpp>
+	<boost/archive/binary_iarchive.hpp>
 	<bass.h>
 
-1378837012 e:\git_repos\chatsounds-preprocessor\version.h
+1379707513 e:\git_repos\chatsounds-preprocessor\version.h
 
 1213877244 e:\git_repos\chatsounds-preprocessor\include\boost\algorithm\string.hpp
 	<boost/algorithm/string/std_containers_traits.hpp>
@@ -13060,4 +13060,101 @@
 1368460251 e:\git_repos\chatsounds-preprocessor\include\bass.h
 	<wtypes.h>
 	<stdint.h>
+
+1259998321 e:\git_repos\chatsounds-preprocessor\include\boost\archive\binary_oarchive.hpp
+	<ostream>
+	<boost/config.hpp>
+	<boost/archive/binary_oarchive_impl.hpp>
+	<boost/archive/detail/register_archive.hpp>
+
+1259998321 e:\git_repos\chatsounds-preprocessor\include\boost\archive\binary_oarchive_impl.hpp
+	<ostream>
+	<boost/config.hpp>
+	<boost/serialization/pfto.hpp>
+	<boost/archive/basic_binary_oprimitive.hpp>
+	<boost/archive/basic_binary_oarchive.hpp>
+
+1295462035 e:\git_repos\chatsounds-preprocessor\include\boost\archive\basic_binary_oprimitive.hpp
+	<iosfwd>
+	<boost/assert.hpp>
+	<locale>
+	<streambuf>
+	<string>
+	<cstddef>
+	<boost/config.hpp>
+	<boost/cstdint.hpp>
+	<boost/integer.hpp>
+	<boost/integer_traits.hpp>
+	<boost/scoped_ptr.hpp>
+	<boost/serialization/throw_exception.hpp>
+	<boost/archive/basic_streambuf_locale_saver.hpp>
+	<boost/archive/archive_exception.hpp>
+	<boost/serialization/is_bitwise_serializable.hpp>
+	<boost/mpl/placeholders.hpp>
+	<boost/serialization/array.hpp>
+	<boost/archive/detail/auto_link_archive.hpp>
+	<boost/archive/detail/abi_prefix.hpp>
+	<boost/archive/detail/abi_suffix.hpp>
+
+1295462035 e:\git_repos\chatsounds-preprocessor\include\boost\archive\basic_binary_oarchive.hpp
+	<boost/assert.hpp>
+	<boost/config.hpp>
+	<boost/detail/workaround.hpp>
+	<boost/serialization/pfto.hpp>
+	<boost/integer.hpp>
+	<boost/integer_traits.hpp>
+	<boost/archive/detail/common_oarchive.hpp>
+	<boost/serialization/string.hpp>
+	<boost/serialization/collection_size_type.hpp>
+	<boost/serialization/item_version_type.hpp>
+	<boost/archive/detail/abi_prefix.hpp>
+	<boost/archive/detail/abi_suffix.hpp>
+
+1259998321 e:\git_repos\chatsounds-preprocessor\include\boost\archive\binary_iarchive.hpp
+	<istream>
+	<boost/archive/binary_iarchive_impl.hpp>
+	<boost/archive/detail/register_archive.hpp>
+	<boost/archive/shared_ptr_helper.hpp>
+
+1259998321 e:\git_repos\chatsounds-preprocessor\include\boost\archive\binary_iarchive_impl.hpp
+	<istream>
+	<boost/serialization/pfto.hpp>
+	<boost/archive/basic_binary_iprimitive.hpp>
+	<boost/archive/basic_binary_iarchive.hpp>
+
+1295462035 e:\git_repos\chatsounds-preprocessor\include\boost\archive\basic_binary_iprimitive.hpp
+	<iosfwd>
+	<boost/assert.hpp>
+	<locale>
+	<cstring>
+	<cstddef>
+	<streambuf>
+	<string>
+	<boost/config.hpp>
+	<boost/cstdint.hpp>
+	<boost/scoped_ptr.hpp>
+	<boost/serialization/throw_exception.hpp>
+	<boost/integer.hpp>
+	<boost/integer_traits.hpp>
+	<boost/archive/basic_streambuf_locale_saver.hpp>
+	<boost/archive/archive_exception.hpp>
+	<boost/mpl/placeholders.hpp>
+	<boost/serialization/is_bitwise_serializable.hpp>
+	<boost/serialization/array.hpp>
+	<boost/archive/detail/auto_link_archive.hpp>
+	<boost/archive/detail/abi_prefix.hpp>
+	<boost/archive/detail/abi_suffix.hpp>
+
+1303515798 e:\git_repos\chatsounds-preprocessor\include\boost\archive\basic_binary_iarchive.hpp
+	<boost/config.hpp>
+	<boost/detail/workaround.hpp>
+	<boost/serialization/pfto.hpp>
+	<boost/archive/basic_archive.hpp>
+	<boost/archive/detail/common_iarchive.hpp>
+	<boost/serialization/collection_size_type.hpp>
+	<boost/serialization/string.hpp>
+	<boost/serialization/item_version_type.hpp>
+	<boost/integer_traits.hpp>
+	<boost/archive/detail/abi_prefix.hpp>
+	<boost/archive/detail/abi_suffix.hpp>
 

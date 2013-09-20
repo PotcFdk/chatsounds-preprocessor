@@ -17,6 +17,7 @@
 				<Linker>
 					<Add library="lib\boost\debug\libboost_system-mgw47-mt-d-1_53.a" />
 					<Add library="lib\boost\debug\libboost_filesystem-mgw47-mt-d-1_53.a" />
+					<Add library="lib\boost\debug\libboost_serialization-mgw47-mt-d-1_53.a" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -32,6 +33,7 @@
 					<Add option="-s" />
 					<Add library="lib\boost\release\libboost_system-mgw47-mt-1_53.a" />
 					<Add library="lib\boost\release\libboost_filesystem-mgw47-mt-1_53.a" />
+					<Add library="lib\boost\release\libboost_serialization-mgw47-mt-1_53.a" />
 				</Linker>
 			</Target>
 		</Build>
