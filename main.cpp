@@ -451,7 +451,7 @@ int Main_DiffUpdate()
             cout << "ERROR " << e << endl;
     }
 
-    cout << endl;
+    cout << endl << "Scanning sounds..." << endl;
 
     try
     {
