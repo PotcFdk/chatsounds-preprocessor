@@ -43,6 +43,18 @@ typedef unordered_map<string, int> SoundCache;
 #define CACHE_VERSION 1
 #define CACHE_PATH "chatsounds-preprocessor-cache"
 
+#define INVALID_FILE_LOG_NAME "invalid-soundfiles.txt"
+
+ofstream invalid_file_log;
+void invalid_file_log_open()
+{
+    if (!invalid_file_log.is_open())
+        invalid_file_log.open(INVALID_FILE_LOG_NAME);
+}
+void invalid_file_log_close()
+{
+    invalid_file_log.close();
+}
 
 bool bass_init = false;
 void InitBass()
@@ -117,6 +129,11 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
                 list.push_back(NamedSoundList(it->path().filename().replace_extension("").string(),sl));
                 sl.clear();
                 sl.shrink_to_fit();
+            }
+            else
+            {
+                invalid_file_log_open();
+                invalid_file_log << it->path().generic_string() << endl;
             }
         }
     }
@@ -468,6 +485,9 @@ int Main_DiffUpdate()
     }
 
     cout << "List generation has finished." << endl;
+
+    invalid_file_log_close();
+
     return 0;
 }
 
@@ -492,6 +512,9 @@ int Main_FullUpdate()
     ProcessSoundFolders(boost::filesystem::path(SOUNDPATH));
 
     cout << "List generation has finished." << endl;
+
+    invalid_file_log_close();
+
     return 0;
 }
 
@@ -532,6 +555,8 @@ int main(int argc, char* argv[])
             cout << "Unknown command line parameter: " << clp << endl
                 << "For usage help, see -h or --help." << endl;
     }
+
+    invalid_file_log_close();
 
     return 0;
 }
