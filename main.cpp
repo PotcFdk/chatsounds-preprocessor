@@ -104,7 +104,7 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
             list.push_back(GetSoundInfo(it->path()));
         }
     }
-    NamedSoundList nlist(path.filename().string(), list);
+    NamedSoundList nlist(boost::algorithm::to_lower_copy(path.filename().string()), list);
     list.clear();
     list.shrink_to_fit();
     return nlist;
@@ -115,18 +115,20 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
     SoundMasterList list;
     for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
     {
-        if ( is_directory(it->status()) )
+        if ( is_directory(it->status()) ) // It's a sound group.
         {
             list.push_back(ProcessSoundGroup(it->path()));
         }
-        else if ( boost::filesystem::is_regular_file(it->status()) )
+        else if ( boost::filesystem::is_regular_file(it->status()) ) // It's a single file.
         {
             SoundInfo soundinfo = GetSoundInfo(it->path());
             if (get<1>(soundinfo) > 0)
             {
                 SoundList sl;
                 sl.push_back(soundinfo);
-                list.push_back(NamedSoundList(it->path().filename().replace_extension("").string(),sl));
+                list.push_back(NamedSoundList(
+                    boost::algorithm::to_lower_copy(it->path().filename().replace_extension("").string()),
+                    sl));
                 sl.clear();
                 sl.shrink_to_fit();
             }
