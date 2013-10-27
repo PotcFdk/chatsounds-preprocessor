@@ -8,6 +8,7 @@
 /// Includes
 
 #include <iostream>
+#include <fstream>
 
 #include "version.h"
 
