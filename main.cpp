@@ -33,6 +33,8 @@ using namespace std;
 
 /// Defines
 
+typedef vector<boost::filesystem::path> PathList;
+
 typedef tuple<string, double> SoundInfo;
 typedef deque<SoundInfo> SoundList;
 typedef pair<string, SoundList> NamedSoundList;
@@ -97,11 +99,16 @@ SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist ab
 NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
 {
     SoundList list;
-    for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+
+    PathList paths;
+    copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
+    sort(paths.begin(), paths.end()); // To make sure it's sorted.
+
+    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
-        if (boost::filesystem::is_regular_file(it->status()))
+        if (boost::filesystem::is_regular_file(*it))
         {
-            list.push_back(GetSoundInfo(it->path()));
+            list.push_back(GetSoundInfo(*it));
         }
     }
     NamedSoundList nlist(boost::algorithm::to_lower_copy(path.filename().string()), list);
@@ -113,21 +120,26 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
 SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
     SoundMasterList list;
-    for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+
+    PathList paths;
+    copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
+    sort(paths.begin(), paths.end()); // To make sure it's sorted.
+
+    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
-        if ( is_directory(it->status()) ) // It's a sound group.
+        if ( is_directory(*it) ) // It's a sound group.
         {
-            list.push_back(ProcessSoundGroup(it->path()));
+            list.push_back(ProcessSoundGroup(*it));
         }
-        else if ( boost::filesystem::is_regular_file(it->status()) ) // It's a single file.
+        else if ( boost::filesystem::is_regular_file(*it) ) // It's a single file.
         {
-            SoundInfo soundinfo = GetSoundInfo(it->path());
+            SoundInfo soundinfo = GetSoundInfo(*it);
             if (get<1>(soundinfo) > 0)
             {
                 SoundList sl;
                 sl.push_back(soundinfo);
                 list.push_back(NamedSoundList(
-                    boost::algorithm::to_lower_copy(it->path().filename().replace_extension("").string()),
+                    boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
                     sl));
                 sl.clear();
                 sl.shrink_to_fit();
@@ -135,7 +147,7 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
             else
             {
                 invalid_file_log_open();
-                invalid_file_log << it->path().generic_string() << endl;
+                invalid_file_log << it->generic_string() << endl;
             }
         }
     }
