@@ -42,6 +42,7 @@ typedef pair<string, SoundList> NamedSoundList;
 typedef deque<NamedSoundList> SoundMasterList;
 
 typedef unordered_map<string, int> SoundCache;
+typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
 #define CACHE_VERSION 1
 #define CACHE_PATH "chatsounds-preprocessor-cache"
@@ -264,75 +265,7 @@ void UpdateSoundSets(unordered_map<string, bool> SoundCacheDiff)
     }
 }
 
-SoundCache GetSoundCache()
-{
-    if (!boost::filesystem::exists(CACHE_PATH))
-        throw 11;
-
-    std::ifstream ifs(CACHE_PATH, ios::binary);
-    boost::archive::binary_iarchive ia(ifs);
-
-    unsigned int file_cache_version;
-    ia & file_cache_version;
-
-    if (file_cache_version != CACHE_VERSION)
-    {
-        ifs.close();
-        boost::filesystem::remove(CACHE_PATH);
-        throw 12;
-    }
-
-    unsigned int cache_size = 0;
-    ia & cache_size;
-
-
-    SoundCache soundcache;
-    for (unsigned int i = 0; i < cache_size; i+=1)
-    {
-        string path;
-        int timestamp;
-        ia & path;
-        ia & timestamp;
-        soundcache[path] = timestamp;
-    }
-    ifs.close();
-    return soundcache;
-}
-
-SoundCache GenerateSoundCache()
-{
-    SoundCache soundcache;
-
-    for(boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
-    {
-        if ( is_directory(it->status()) )
-        {
-            for(boost::filesystem::directory_iterator its(it->path()); its != boost::filesystem::directory_iterator(); ++its)
-            {
-                if ( is_directory(its->status()) )
-                {
-                    for(boost::filesystem::directory_iterator itg(its->path()); itg != boost::filesystem::directory_iterator(); ++itg)
-                    {
-                        if ( boost::filesystem::is_regular_file(itg->status()) )
-                        {
-                            soundcache[ itg->path().generic_string() ] = boost::filesystem::last_write_time( itg->path() );
-                        }
-                    }
-                }
-                else
-                {
-                    soundcache[ its->path().generic_string() ] = boost::filesystem::last_write_time( its->path() );
-                }
-            }
-        }
-    }
-
-    return soundcache;
-}
-
-
-
-unordered_map<string, bool> GetModifiedSoundSets(SoundCache cache1, SoundCache cache2)
+MissingSoundCacheFiles GetModifiedSoundSets(SoundCache cache1, SoundCache cache2)
 {
     unordered_map<string, bool> list;
 
@@ -385,7 +318,7 @@ unordered_map<string, bool> GetModifiedSoundSets(SoundCache cache1, SoundCache c
     return list;
 }
 
-void AddMissingLists(unordered_map<string, bool> * list, SoundCache soundcache)
+void AddMissingLists(MissingSoundCacheFiles * list, SoundCache soundcache)
 {
     for ( auto it = soundcache.begin(); it != soundcache.end(); ++it )
     {
@@ -410,6 +343,86 @@ void AddMissingLists(unordered_map<string, bool> * list, SoundCache soundcache)
             (*list)[name] = true;
         }
     }
+}
+
+// Sound Cache
+
+void EraseSoundCache()
+{
+    try
+    {
+        if (boost::filesystem::exists(CACHE_PATH))
+            boost::filesystem::remove(CACHE_PATH);
+    }
+    catch (boost::archive::archive_exception e)
+    {
+        cout << "Boost exception: " << e.what() << endl;
+    }
+}
+
+SoundCache ReadSoundCache()
+{
+    if (!boost::filesystem::exists(CACHE_PATH))
+        throw 11;
+
+    std::ifstream ifs(CACHE_PATH, ios::binary);
+    boost::archive::binary_iarchive ia(ifs);
+
+    unsigned int file_cache_version;
+    ia & file_cache_version;
+
+    if (file_cache_version != CACHE_VERSION)
+    {
+        ifs.close();
+        throw 12;
+    }
+
+    unsigned int cache_size = 0;
+    ia & cache_size;
+
+
+    SoundCache soundcache;
+    for (unsigned int i = 0; i < cache_size; i+=1)
+    {
+        string path;
+        int timestamp;
+        ia & path;
+        ia & timestamp;
+        soundcache[path] = timestamp;
+    }
+    ifs.close();
+    return soundcache;
+}
+
+SoundCache GenerateSoundCache()
+{
+    SoundCache soundcache;
+
+    for(boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
+    {
+        if ( is_directory(it->status()) )
+        {
+            for(boost::filesystem::directory_iterator its(it->path()); its != boost::filesystem::directory_iterator(); ++its)
+            {
+                if ( is_directory(its->status()) )
+                {
+                    for(boost::filesystem::directory_iterator itg(its->path()); itg != boost::filesystem::directory_iterator(); ++itg)
+                    {
+                        if ( boost::filesystem::is_regular_file(itg->status()) )
+                        {
+                            soundcache[ itg->path().generic_string() ] = boost::filesystem::last_write_time( itg->path() );
+                        }
+                    }
+                }
+                else
+                {
+                    soundcache[ its->path().generic_string() ] = boost::filesystem::last_write_time( its->path() );
+                }
+            }
+        }
+    }
+
+    return soundcache;
 }
 
 void WriteSoundCache(SoundCache soundcache)
@@ -445,7 +458,7 @@ void CleanupFolder(boost::filesystem::path path)
 
             CleanupFolder(pp);
 
-            if( boost::filesystem::is_empty( pp ))
+            if(boost::filesystem::is_empty(pp))
             {
                boost::filesystem::remove_all(pp);
             }
@@ -468,11 +481,12 @@ int Main_DiffUpdate()
     SoundCache soundcache;
     try
     {
-        soundcache = GetSoundCache();
+        soundcache = ReadSoundCache();
     }
     catch (boost::archive::archive_exception e)
     {
         cout << "Boost exception: " << e.what() << endl;
+        EraseSoundCache();
     }
     catch (int e)
     {
@@ -481,6 +495,7 @@ int Main_DiffUpdate()
             cout << "Incompatible Cache, reset." << endl;
         else
             cout << "ERROR " << e << endl;
+        EraseSoundCache();
     }
 
     cout << endl << "Scanning sounds..." << endl;
@@ -488,9 +503,9 @@ int Main_DiffUpdate()
     try
     {
         SoundCache new_soundcache = GenerateSoundCache();
-        unordered_map<string, bool> SoundCacheDiff = GetModifiedSoundSets(soundcache, new_soundcache);
-        AddMissingLists(&SoundCacheDiff, new_soundcache);
-        UpdateSoundSets(SoundCacheDiff);
+        MissingSoundCacheFiles to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
+        AddMissingLists(&to_be_updated, new_soundcache);
+        UpdateSoundSets(to_be_updated);
         WriteSoundCache(new_soundcache);
     }
     catch (int e)
