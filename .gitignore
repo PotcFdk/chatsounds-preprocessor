@@ -10,6 +10,9 @@ lib/*
 obj
 bin
 
+# Test Folder
+run
+
 # Compiled Binaries
 *.exe
 
