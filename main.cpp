@@ -141,8 +141,8 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
                 SoundList sl;
                 sl.push_back(soundinfo);
                 list.push_back(NamedSoundList(
-                    boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
-                    sl));
+                                   boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
+                                   sl));
                 sl.clear();
                 sl.shrink_to_fit();
             }
@@ -194,7 +194,7 @@ void BuildSoundList(SoundMasterList list, string listname)
 
 void UpdateSoundFolder(boost::filesystem::path path, int folder_p, int folder_t)
 {
-    #define P_LENGTH 57
+#define P_LENGTH 57
 
     string p1 = '"' + path.filename().string() + '"' + " (" + boost::lexical_cast<string>(folder_p) + '/' + boost::lexical_cast<string>(folder_t) + ") ...";
     p1 = p1.size() >= P_LENGTH ? "..." + p1.substr(p1.size() - P_LENGTH + 3) : p1 + string(P_LENGTH - p1.size(), ' ');
@@ -245,7 +245,7 @@ void UpdateSoundSet(string name, int folder_p, int folder_t)
     }
     else if(boost::filesystem::is_regular_file(list_path))
     {
-        #define P2_LENGTH 59
+#define P2_LENGTH 59
         string p1 = '"' + name + '"' + " (" + boost::lexical_cast<string>(folder_p) + '/' + boost::lexical_cast<string>(folder_t) + ") ...";
         p1 = p1.size() >= P2_LENGTH ? "..." + p1.substr(p1.size() - P2_LENGTH + 3) : p1 + string(P2_LENGTH - p1.size(), ' ');
 
@@ -460,7 +460,7 @@ void CleanupFolder(boost::filesystem::path path)
 
             if(boost::filesystem::is_empty(pp))
             {
-               boost::filesystem::remove_all(pp);
+                boost::filesystem::remove_all(pp);
             }
         }
     }
@@ -528,9 +528,14 @@ int Main_FullUpdate()
     InitBass();
     cout << "Resetting cache..." << endl;
 
-    try { boost::filesystem::remove(CACHE_PATH); }
-        catch (boost::filesystem::filesystem_error e)
-            { cout << "Cannot reset cache: " << endl << "  " << e.what() << endl << endl; }
+    try
+    {
+        boost::filesystem::remove(CACHE_PATH);
+    }
+    catch (boost::filesystem::filesystem_error e)
+    {
+        cout << "Cannot reset cache: " << endl << "  " << e.what() << endl << endl;
+    }
 
     cout << "Deleting old lists..." << endl;
     ClearFolder(LISTPATH);
@@ -555,14 +560,21 @@ int Main_FullUpdate()
 
 
 
-
-int main(int argc, char* argv[])
+void print_topinfo()
 {
     cout << "chatsounds-preprocessor v" +
          boost::lexical_cast<std::string>(AutoVersion::MAJOR) + "." +
          boost::lexical_cast<std::string>(AutoVersion::MINOR) + "." +
          boost::lexical_cast<std::string>(AutoVersion::BUILD) + " by PotcFdk  (Build " +
          boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + ")" << endl << endl;
+
+    cout << "Please report any bugs / issues to:" << endl
+         << "https://github.com/PotcFdk/chatsounds-preprocessor/issues" << endl << endl;
+}
+
+int main(int argc, char* argv[])
+{
+    print_topinfo();
 
     if (argc == 1)
         return Main_DiffUpdate();
@@ -576,14 +588,14 @@ int main(int argc, char* argv[])
         else if (clp == "-h" || clp == "--help")
         {
             cout << "Usage: " << endl
-                << " -f | --full  -  Full, uncached list generation" << endl
-                << " -l | --lite  -  Normal, cached list generation" << endl
-                << " -d | --diff  -  Same as --lite" << endl
-                << " -h | --help  -  Usage help (this text right here)" << endl;
+                 << " -f | --full  -  Full, uncached list generation" << endl
+                 << " -l | --lite  -  Normal, cached list generation" << endl
+                 << " -d | --diff  -  Same as --lite" << endl
+                 << " -h | --help  -  Usage help (this text right here)" << endl;
         }
         else
             cout << "Unknown command line parameter: " << clp << endl
-                << "For usage help, see -h or --help." << endl;
+                 << "For usage help, see -h or --help." << endl;
     }
 
     invalid_file_log_close();
