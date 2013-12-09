@@ -1,5 +1,11 @@
 // Settings
 
+#define BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
+
+#define CACHE_VERSION 1
+#define CACHE_PATH "chatsounds-preprocessor-cache"
+#define INVALID_FILE_LOG_PATH "invalid-soundfiles.txt"
+
 #define LISTPATH "lua/chatsounds/lists_nosend"
 #define SOUNDPATH "sound/chatsounds/autoadd"
 #define SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
@@ -44,16 +50,12 @@ typedef deque<NamedSoundList> SoundMasterList;
 typedef unordered_map<string, int> SoundCache;
 typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
-#define CACHE_VERSION 1
-#define CACHE_PATH "chatsounds-preprocessor-cache"
-
-#define INVALID_FILE_LOG_NAME "invalid-soundfiles.txt"
 
 ofstream invalid_file_log;
 void invalid_file_log_open()
 {
     if (!invalid_file_log.is_open())
-        invalid_file_log.open(INVALID_FILE_LOG_NAME);
+        invalid_file_log.open(INVALID_FILE_LOG_PATH);
 }
 void invalid_file_log_close()
 {
@@ -569,7 +571,7 @@ void print_topinfo()
          boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + ")" << endl << endl;
 
     cout << "Please report any bugs / issues to:" << endl
-         << "https://github.com/PotcFdk/chatsounds-preprocessor/issues" << endl << endl;
+         << BUGTRACKER_LINK << endl << endl;
 }
 
 int main(int argc, char* argv[])
