@@ -1,0 +1,14 @@
+= Public Error Codes =
+
+1: DiffUpdate: Sound path was not found / inaccessible.
+2: FullUpdate: Sound path was not found / inaccessible.
+3: Sound list path was not found / inaccessible.
+
+31: Modified sound file path scan 1 iteration count exceeded 300.
+32: Modified sound file path scan 2 iteration count exceeded 300.
+33: Missing sound list scan iteration count exceeded 300.
+
+= Internal Error Codes =
+
+11: [NAE] Sound Cache file is missing
+12: [NAE] Sound Cache has invalid / outdated version ID
