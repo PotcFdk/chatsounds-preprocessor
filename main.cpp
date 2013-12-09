@@ -471,14 +471,22 @@ void CleanupFolder(boost::filesystem::path path)
 
 // Modes
 
-int Main_DiffUpdate()
+int DiffUpdate()
 {
     cout << "Running in DIFF mode." << endl;
 
     InitBass();
 
     cout << "Cleaning up sound folder..." << endl;
-    CleanupFolder(SOUNDPATH);
+    try
+    {
+        CleanupFolder(SOUNDPATH);
+    }
+    catch(boost::filesystem::filesystem_error e)
+    {
+        cout << "Boost exception: " << e.what() << endl;
+        throw 1;
+    }
 
     SoundCache soundcache;
     try
@@ -502,19 +510,11 @@ int Main_DiffUpdate()
 
     cout << endl << "Scanning sounds..." << endl;
 
-    try
-    {
-        SoundCache new_soundcache = GenerateSoundCache();
-        MissingSoundCacheFiles to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
-        AddMissingLists(&to_be_updated, new_soundcache);
-        UpdateSoundSets(to_be_updated);
-        WriteSoundCache(new_soundcache);
-    }
-    catch (int e)
-    {
-        cout << "ERROR: " << e << endl;
-        return -e;
-    }
+    SoundCache new_soundcache = GenerateSoundCache();
+    MissingSoundCacheFiles to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
+    AddMissingLists(&to_be_updated, new_soundcache);
+    UpdateSoundSets(to_be_updated);
+    WriteSoundCache(new_soundcache);
 
     cout << "List generation has finished." << endl;
 
@@ -523,7 +523,7 @@ int Main_DiffUpdate()
     return 0;
 }
 
-int Main_FullUpdate()
+int FullUpdate()
 {
     cout << "Running in FULL mode." << endl;
 
@@ -540,10 +540,26 @@ int Main_FullUpdate()
     }
 
     cout << "Deleting old lists..." << endl;
-    ClearFolder(LISTPATH);
+    try
+    {
+        ClearFolder(LISTPATH);
+    }
+    catch(boost::filesystem::filesystem_error e)
+    {
+        cout << "Boost exception: " << e.what() << endl;
+        throw 3;
+    }
 
     cout << "Cleaning up sound folder..." << endl;
-    CleanupFolder(SOUNDPATH);
+    try
+    {
+        CleanupFolder(SOUNDPATH);
+    }
+    catch(boost::filesystem::filesystem_error e)
+    {
+        cout << "Boost exception: " << e.what() << endl;
+        throw 2;
+    }
 
     cout << endl;
     ProcessSoundFolders(boost::filesystem::path(SOUNDPATH));
@@ -557,6 +573,48 @@ int Main_FullUpdate()
 
 
 
+void showError(int e)
+{
+    cout << endl << "Preprocessor Exception: ERROR " << e << endl;
+
+    if (e >= 30)
+        cout << "Please report this bug at:" << endl << "  " << BUGTRACKER_LINK << endl;
+    else
+        cout << "The error message above should give you an idea on what might be wrong." << endl;
+
+    cout << endl << "Press ENTER to exit..." << endl;
+    cin.get();
+}
+
+
+
+int Launch_DiffUpdate()
+{
+    try
+    {
+        DiffUpdate();
+    }
+    catch (int e)
+    {
+        showError(e);
+        return -1;
+    }
+    return 0;
+}
+
+int Launch_FullUpdate()
+{
+    try
+    {
+        FullUpdate();
+    }
+    catch (int e)
+    {
+        showError(e);
+        return -1;
+    }
+    return 0;
+}
 
 
 
@@ -579,14 +637,14 @@ int main(int argc, char* argv[])
     print_topinfo();
 
     if (argc == 1)
-        return Main_DiffUpdate();
+        return Launch_DiffUpdate();
     else if (argc >= 2)
     {
         string clp(argv[1]);
         if (clp == "-f" || clp == "--full")
-            return Main_FullUpdate();
+            return Launch_FullUpdate();
         else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
-            return Main_DiffUpdate();
+            return Launch_DiffUpdate();
         else if (clp == "-h" || clp == "--help")
         {
             cout << "Usage: " << endl
