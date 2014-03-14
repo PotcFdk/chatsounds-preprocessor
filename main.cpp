@@ -473,8 +473,6 @@ void CleanupFolder(boost::filesystem::path path)
 
 int DiffUpdate()
 {
-    cout << "Running in DIFF mode." << endl;
-
     InitBass();
 
     cout << "Cleaning up sound folder..." << endl;
@@ -525,9 +523,6 @@ int DiffUpdate()
 
 int FullUpdate()
 {
-    cout << "Running in FULL mode." << endl;
-
-    InitBass();
     cout << "Resetting cache..." << endl;
 
     try
@@ -550,25 +545,7 @@ int FullUpdate()
         throw 3;
     }
 
-    cout << "Cleaning up sound folder..." << endl;
-    try
-    {
-        CleanupFolder(SOUNDPATH);
-    }
-    catch(boost::filesystem::filesystem_error e)
-    {
-        cout << "Boost exception: " << e.what() << endl;
-        throw 2;
-    }
-
-    cout << endl;
-    ProcessSoundFolders(boost::filesystem::path(SOUNDPATH));
-
-    cout << "List generation has finished." << endl;
-
-    invalid_file_log_close();
-
-    return 0;
+    return DiffUpdate();
 }
 
 
@@ -590,6 +567,8 @@ void showError(int e)
 
 int Launch_DiffUpdate()
 {
+    cout << "Running in DIFF mode." << endl;
+
     try
     {
         DiffUpdate();
@@ -604,6 +583,8 @@ int Launch_DiffUpdate()
 
 int Launch_FullUpdate()
 {
+    cout << "Running in FULL mode." << endl;
+
     try
     {
         FullUpdate();
