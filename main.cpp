@@ -649,8 +649,8 @@ int main(int argc, char* argv[])
         {
             cout << "Usage: " << endl
                  << " -f | --full  -  Full, uncached list generation" << endl
-                 << " -l | --lite  -  Normal, cached list generation" << endl
-                 << " -d | --diff  -  Same as --lite" << endl
+                 << " -d | --diff  -  Normal, cached list generation" << endl
+                 << " -l | --lite  -  Same as --lite" << endl
                  << " -h | --help  -  Usage help (this text right here)" << endl;
         }
         else
