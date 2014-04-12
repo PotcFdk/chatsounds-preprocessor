@@ -50,6 +50,13 @@ typedef deque<NamedSoundList> SoundMasterList;
 typedef unordered_map<string, int> SoundCache;
 typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
+///
+
+std::vector<unsigned int> valid_samplerates_ogg = {
+    11025,
+    22050,
+    44100,
+};
 
 ofstream invalid_file_log;
 void invalid_file_log_open()
@@ -73,11 +80,12 @@ void InitBass()
     }
 }
 
-double GetSoundDuration(boost::filesystem::path path) // Gets the duration of a sound.
+double GetSoundDuration(boost::filesystem::path path, float * freq) // Gets the duration of a sound.
 {
     HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
     QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
     double length = BASS_ChannelBytes2Seconds(sound, bytecount);
+    BASS_ChannelGetAttribute(sound, BASS_ATTRIB_FREQ, freq);
     BASS_StreamFree(sound);
     return length;
 }
@@ -92,9 +100,21 @@ SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist ab
         if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
         {
             string s_path = path.generic_string();
-            double duration = GetSoundDuration(s_path);
-            boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
-            return SoundInfo(s_path, duration);
+            float freq = 0;
+            double duration = GetSoundDuration(s_path, &freq);
+            if (
+                ( ext != ".ogg"
+                    || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
+                        != valid_samplerates_ogg.end()) )
+               )
+            {
+                boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
+                return SoundInfo(s_path, duration);
+            }
+            else
+            {
+                cout << "[invalid sample rate] " << s_path << ": " << freq << endl;
+            }
         }
     }
     return SoundInfo("",0);
