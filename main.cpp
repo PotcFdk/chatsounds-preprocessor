@@ -504,6 +504,17 @@ int DiffUpdate()
 {
     InitBass();
 
+    cout << "Resetting invalid soundfile log..." << endl;
+
+    try
+    {
+        boost::filesystem::remove(INVALID_FILE_LOG_PATH);
+    }
+    catch (boost::filesystem::filesystem_error e)
+    {
+        cout << "Cannot reset invalid soundfile log: " << endl << "  " << e.what() << endl << endl;
+    }
+
     cout << "Cleaning up sound folder..." << endl;
     try
     {
