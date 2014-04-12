@@ -134,7 +134,14 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
         {
             SoundInfo soundinfo = GetSoundInfo(*it);
             if (get<1>(soundinfo) > 0)
+            {
                 list.push_back(soundinfo);
+            }
+            else
+            {
+                invalid_file_log_open();
+                invalid_file_log << it->generic_string() << endl;
+            }
         }
     }
     NamedSoundList nlist(boost::algorithm::to_lower_copy(path.filename().string()), list);
