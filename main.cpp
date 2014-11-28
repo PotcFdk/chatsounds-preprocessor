@@ -663,7 +663,10 @@ void print_topinfo()
          boost::lexical_cast<std::string>(AutoVersion::MAJOR) + "." +
          boost::lexical_cast<std::string>(AutoVersion::MINOR) + "." +
          boost::lexical_cast<std::string>(AutoVersion::BUILD) + " by PotcFdk  (Build " +
-         boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + ")" << endl << endl;
+         boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + " @ " +
+         boost::lexical_cast<std::string>(AutoVersion::YEAR) + "/" +
+         boost::lexical_cast<std::string>(AutoVersion::MONTH) + "/" +
+         boost::lexical_cast<std::string>(AutoVersion::DATE) + ")" << endl << endl;
 
     cout << "Please report any bugs / issues to:" << endl
          << BUGTRACKER_LINK << endl << endl;
