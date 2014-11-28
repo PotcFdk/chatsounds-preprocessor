@@ -201,11 +201,11 @@ void BuildSoundList(SoundMasterList list, string listname)
 {
     string soundlist = "c.StartList(\"" + listname + "\")\n";
 
-    for(SoundMasterList::const_iterator it=list.begin() ; it < list.end(); it++ )
+    for (SoundMasterList::const_iterator it=list.begin() ; it < list.end(); it++ )
     {
         SoundList sndlist = get<1>(*it);
         soundlist += "L[\"" + get<0>(*it) + "\"]={";
-        for(SoundList::const_iterator it2=sndlist.begin() ; it2 < sndlist.end(); it2++ )
+        for (SoundList::const_iterator it2=sndlist.begin() ; it2 < sndlist.end(); it2++ )
         {
             SoundInfo sndinfo = *it2;
             soundlist += "{path=\"" + get<0>(sndinfo) + "\",length=" + boost::lexical_cast<std::string>(get<1>(sndinfo)) + "},";
@@ -215,8 +215,8 @@ void BuildSoundList(SoundMasterList list, string listname)
 
     soundlist += "c.EndList()";
 
-    std::ofstream f( string(LISTPATH) + "/" + listname + ".lua" );
-    if ( !f.fail() )
+    std::ofstream f(string(LISTPATH) + "/" + listname + ".lua");
+    if (!f.fail())
     {
         f << soundlist;
         f.close();
