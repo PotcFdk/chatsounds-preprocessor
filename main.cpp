@@ -219,7 +219,7 @@ void BuildSoundList(SoundMasterList list, string listname)
 
     soundlist += "c.EndList()";
 
-    std::ofstream f(string(LISTPATH) + "/" + listname + ".lua");
+    std::ofstream f(string(LISTPATH) + "/" + listname + ".lua", std::ofstream::binary);
     if (!f.fail())
     {
         f << soundlist;
