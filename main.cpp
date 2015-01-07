@@ -89,6 +89,18 @@ double GetSoundDuration(boost::filesystem::path path, float * freq) // Gets the 
     return length;
 }
 
+boost::filesystem::path GetAbsolutePath(boost::filesystem::path path)
+{
+    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+        boost::filesystem::path ret ("\\\\?\\");
+        ret += boost::filesystem::absolute(path);
+        ret.make_preferred();
+        return ret;
+    #else
+        return boost::filesystem::absolute(path);
+    #endif
+}
+
 SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist about a sound.
 {
     if (path.has_extension())
@@ -99,8 +111,10 @@ SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist ab
         if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
         {
             string s_path = path.generic_string();
+            boost::filesystem::path full_path = GetAbsolutePath(path);
+
             float freq = 0;
-            double duration = GetSoundDuration(s_path, &freq);
+            double duration = GetSoundDuration(full_path, &freq);
             if (
                 ( ext != ".ogg"
                     || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
@@ -129,7 +143,9 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
-        if (boost::filesystem::is_regular_file(*it))
+        boost::filesystem::path sub_path = GetAbsolutePath(*it);
+
+        if (boost::filesystem::is_regular_file(sub_path))
         {
             SoundInfo soundinfo = GetSoundInfo(*it);
             if (get<1>(soundinfo) > 0)
@@ -159,11 +175,13 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
-        if ( is_directory(*it) ) // It's a sound group.
+        boost::filesystem::path sub_path = GetAbsolutePath(*it);
+
+        if (is_directory(sub_path)) // It's a sound group.
         {
             list.push_back(ProcessSoundGroup(*it));
         }
-        else if ( boost::filesystem::is_regular_file(*it) ) // It's a single file.
+        else if (boost::filesystem::is_regular_file(sub_path)) // It's a single file.
         {
             SoundInfo soundinfo = GetSoundInfo(*it);
             if (get<1>(soundinfo) > 0)
@@ -444,31 +462,15 @@ SoundCache GenerateSoundCache()
                     {
                         if (boost::filesystem::is_regular_file(itg->status()))
                         {
-                            #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-                                boost::filesystem::path tmp_path ("\\\\?\\");
-                                tmp_path += boost::filesystem::absolute(itg->path());
-                                tmp_path.make_preferred();
-                                soundcache[itg->path().generic_string()]
-                                    = boost::filesystem::last_write_time(tmp_path);
-                            #else
-                                soundcache[itg->path().generic_string()]
-                                    = boost::filesystem::last_write_time(itg->path());
-                            #endif
+                            soundcache[itg->path().generic_string()]
+                                    = boost::filesystem::last_write_time(GetAbsolutePath(itg->path()));
                         }
                     }
                 }
                 else
                 {
-                    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-                        boost::filesystem::path tmp_path ("\\\\?\\");
-                        tmp_path += boost::filesystem::absolute(its->path());
-                        tmp_path.make_preferred();
-                        soundcache[its->path().generic_string()]
-                            = boost::filesystem::last_write_time(tmp_path);
-                    #else
-                        soundcache[its->path().generic_string()]
-                            = boost::filesystem::last_write_time(its->path());
-                    #endif
+                    soundcache[its->path().generic_string()]
+                            = boost::filesystem::last_write_time(GetAbsolutePath(its->path()));
                 }
             }
         }
