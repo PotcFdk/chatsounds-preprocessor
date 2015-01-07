@@ -10,7 +10,6 @@
 #define SOUNDPATH "sound/chatsounds/autoadd"
 #define SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
 
-
 /// Includes
 
 #include <iostream>
@@ -433,25 +432,43 @@ SoundCache GenerateSoundCache()
 {
     SoundCache soundcache;
 
-    for(boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
+    for (boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
     {
-        if ( is_directory(it->status()) )
+        if (is_directory(it->status()))
         {
-            for(boost::filesystem::directory_iterator its(it->path()); its != boost::filesystem::directory_iterator(); ++its)
+            for (boost::filesystem::directory_iterator its(it->path()); its != boost::filesystem::directory_iterator(); ++its)
             {
-                if ( is_directory(its->status()) )
+                if (is_directory(its->status()))
                 {
-                    for(boost::filesystem::directory_iterator itg(its->path()); itg != boost::filesystem::directory_iterator(); ++itg)
+                    for (boost::filesystem::directory_iterator itg(its->path()); itg != boost::filesystem::directory_iterator(); ++itg)
                     {
-                        if ( boost::filesystem::is_regular_file(itg->status()) )
+                        if (boost::filesystem::is_regular_file(itg->status()))
                         {
-                            soundcache[ itg->path().generic_string() ] = boost::filesystem::last_write_time( itg->path() );
+                            #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+                                boost::filesystem::path tmp_path ("\\\\?\\");
+                                tmp_path += boost::filesystem::absolute(itg->path());
+                                tmp_path.make_preferred();
+                                soundcache[itg->path().generic_string()]
+                                    = boost::filesystem::last_write_time(tmp_path);
+                            #else
+                                soundcache[itg->path().generic_string()]
+                                    = boost::filesystem::last_write_time(itg->path());
+                            #endif
                         }
                     }
                 }
                 else
                 {
-                    soundcache[ its->path().generic_string() ] = boost::filesystem::last_write_time( its->path() );
+                    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+                        boost::filesystem::path tmp_path ("\\\\?\\");
+                        tmp_path += boost::filesystem::absolute(its->path());
+                        tmp_path.make_preferred();
+                        soundcache[its->path().generic_string()]
+                            = boost::filesystem::last_write_time(tmp_path);
+                    #else
+                        soundcache[its->path().generic_string()]
+                            = boost::filesystem::last_write_time(its->path());
+                    #endif
                 }
             }
         }
@@ -550,11 +567,26 @@ int DiffUpdate()
         EraseSoundCache();
     }
 
-    cout << endl << "Scanning sounds..." << endl;
+    cout << endl << "Scanning sounds...";
 
-    SoundCache new_soundcache = GenerateSoundCache();
-    MissingSoundCacheFiles to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
-    AddMissingLists(&to_be_updated, new_soundcache);
+    SoundCache new_soundcache;
+    MissingSoundCacheFiles to_be_updated;
+
+    try
+    {
+        new_soundcache = GenerateSoundCache();
+        to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
+        AddMissingLists(&to_be_updated, new_soundcache);
+    }
+    catch (boost::filesystem::filesystem_error e)
+    {
+        cout << "  ERR" << endl
+            << "Boost exception: " << e.what() << endl;
+        throw 60;
+    }
+
+    cout << "  OK" << endl;
+
     UpdateSoundSets(to_be_updated);
     WriteSoundCache(new_soundcache);
 
@@ -634,6 +666,10 @@ int Launch_DiffUpdate()
         showError(e);
         return -1;
     }
+    catch (...)
+    {
+        showError(99);
+    }
     return 0;
 }
 
@@ -649,6 +685,10 @@ int Launch_FullUpdate()
     {
         showError(e);
         return -1;
+    }
+    catch (...)
+    {
+        showError(99);
     }
     return 0;
 }
