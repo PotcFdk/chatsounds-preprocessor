@@ -1,3 +1,7 @@
+/*** You had a choice: looking at this code,  ***
+ *** or living in blissful ignorance.         ***
+ *** You chose poorly.                        ***/
+
 // Settings
 
 #define BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
