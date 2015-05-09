@@ -763,7 +763,10 @@ int Launch_FullUpdate()
 int main(int argc, char* argv[])
 {
     if (argc == 1)
+    {
+        print_topinfo();
         return Launch_DiffUpdate();
+    }
     else if (argc >= 2)
     {
         string clp(argv[1]);
