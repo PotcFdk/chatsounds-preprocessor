@@ -659,6 +659,63 @@ void showError(int e)
 
 
 
+void print_topinfo()
+{
+    cout << "chatsounds-preprocessor v"
+         << AutoVersion::MAJOR << "."
+         << AutoVersion::MINOR << "."
+         << AutoVersion::BUILD << " by PotcFdk  (Build "
+         << AutoVersion::BUILDS_COUNT << " @ "
+         << AutoVersion::YEAR << "/"
+         << AutoVersion::MONTH << "/"
+         << AutoVersion::DATE << ")" << endl << endl
+
+         << "Please report any bugs / issues to:" << endl
+         << BUGTRACKER_LINK << endl << endl;
+}
+
+void print_versioninfo()
+{
+    cout << "chatsounds-preprocessor"
+         << endl << "Version    : "
+         << AutoVersion::MAJOR << "."
+         << AutoVersion::MINOR << "."
+         << AutoVersion::BUILD
+         << endl << "Build      : "
+         << AutoVersion::BUILDS_COUNT
+         << endl << "Build date : "
+         << AutoVersion::YEAR << "/"
+         << AutoVersion::MONTH << "/"
+         << AutoVersion::DATE
+         << endl
+
+    #if defined(__clang__)
+         << "Compiler   : Clang/LLVM, version "
+         #if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
+            << __clang_major__ << '.' << __clang_minor__ << '.' << __clang_patchlevel__
+         #else
+            << __VERSION__
+         #endif
+          << endl;
+    #elif defined(__GNUG__)
+         << "Compiler   : GNU G++, version "
+         #if defined(__GNUG__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
+            << __GNUG__ << '.' << __GNUC_MINOR__ << '.' << __GNUC_PATCHLEVEL__
+         #else
+            << __VERSION__
+         #endif
+         << endl;
+    #elif defined(_MSC_VER)
+         << "Compiler   : Microsoft Visual Studio, version "  << _MSC_VER << endl;
+    #elif defined(__VERSION__)
+         << "Compiler   : Unknown compiler, version " << __VERSION__ << endl;
+    #else
+         << "Compiler   : Unknown compiler" << endl;
+    #endif
+}
+
+
+
 int Launch_DiffUpdate()
 {
     cout << "Running in DIFF mode." << endl;
@@ -703,45 +760,38 @@ int Launch_FullUpdate()
 
 
 
-void print_topinfo()
-{
-    cout << "chatsounds-preprocessor v" +
-         boost::lexical_cast<std::string>(AutoVersion::MAJOR) + "." +
-         boost::lexical_cast<std::string>(AutoVersion::MINOR) + "." +
-         boost::lexical_cast<std::string>(AutoVersion::BUILD) + " by PotcFdk  (Build " +
-         boost::lexical_cast<std::string>(AutoVersion::BUILDS_COUNT) + " @ " +
-         boost::lexical_cast<std::string>(AutoVersion::YEAR) + "/" +
-         boost::lexical_cast<std::string>(AutoVersion::MONTH) + "/" +
-         boost::lexical_cast<std::string>(AutoVersion::DATE) + ")" << endl << endl;
-
-    cout << "Please report any bugs / issues to:" << endl
-         << BUGTRACKER_LINK << endl << endl;
-}
-
 int main(int argc, char* argv[])
 {
-    print_topinfo();
-
     if (argc == 1)
         return Launch_DiffUpdate();
     else if (argc >= 2)
     {
         string clp(argv[1]);
-        if (clp == "-f" || clp == "--full")
-            return Launch_FullUpdate();
-        else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
-            return Launch_DiffUpdate();
-        else if (clp == "-h" || clp == "--help")
-        {
-            cout << "Usage: " << endl
-                 << " -f | --full  -  Full, uncached list generation" << endl
-                 << " -d | --diff  -  Normal, cached list generation" << endl
-                 << " -l | --lite  -  Same as --lite" << endl
-                 << " -h | --help  -  Usage help (this text right here)" << endl;
-        }
+        boost::algorithm::to_lower(clp);
+
+        if (clp == "-v" || clp == "--version")
+            print_versioninfo();
         else
-            cout << "Unknown command line parameter: " << clp << endl
-                 << "For usage help, see -h or --help." << endl;
+        {
+            print_topinfo();
+
+            if (clp == "-f" || clp == "--full")
+                return Launch_FullUpdate();
+            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
+                return Launch_DiffUpdate();
+            else if (clp == "-h" || clp == "--help")
+            {
+                cout << "Usage: " << endl
+                     << " -f | --full     -  Full, uncached list generation" << endl
+                     << " -d | --diff     -  Normal, cached list generation (default)" << endl
+                     << " -l | --lite     -  Same as --diff" << endl
+                     << " -h | --help     -  Usage help (this text right here)" << endl
+                     << " -v | --version  -  Show the program version" << endl;
+            }
+            else
+                cout << "Unknown command line parameter: " << clp << endl
+                     << "For usage help, see -h or --help." << endl;
+        }
     }
 
     invalid_file_log_close();
