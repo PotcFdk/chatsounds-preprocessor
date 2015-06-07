@@ -55,6 +55,14 @@ typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
 ///
 
+#define DVER(X) #X
+
+#ifdef DISTRIBUTION_VERSION
+const char * _DISTRIBUTION_VERSION = DISTRIBUTION_VERSION;
+#else
+const bool _DISTRIBUTION_VERSION = false;
+#endif // DISTRIBUTION_VERSION
+
 std::vector<unsigned int> valid_samplerates_ogg = {
     11025,
     22050,
@@ -664,7 +672,12 @@ void print_topinfo()
     cout << "chatsounds-preprocessor v"
          << AutoVersion::MAJOR << "."
          << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD << " by PotcFdk  (Build "
+         << AutoVersion::BUILD;
+
+    if (_DISTRIBUTION_VERSION)
+        cout << "-" << _DISTRIBUTION_VERSION;
+
+    cout << " by PotcFdk  (Build "
          << AutoVersion::BUILDS_COUNT << " @ "
          << AutoVersion::YEAR << "/"
          << AutoVersion::MONTH << "/"
@@ -680,8 +693,12 @@ void print_versioninfo()
          << endl << "Version    : "
          << AutoVersion::MAJOR << "."
          << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD
-         << endl << "Build      : "
+         << AutoVersion::BUILD;
+
+    if (_DISTRIBUTION_VERSION)
+        cout << "-" << _DISTRIBUTION_VERSION;
+
+    cout << endl << "Build      : "
          << AutoVersion::BUILDS_COUNT
          << endl << "Build date : "
          << AutoVersion::YEAR << "/"
