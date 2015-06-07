@@ -63,7 +63,7 @@ const char * _DISTRIBUTION_VERSION = DISTRIBUTION_VERSION;
 const bool _DISTRIBUTION_VERSION = false;
 #endif // DISTRIBUTION_VERSION
 
-std::vector<unsigned int> valid_samplerates_ogg = {
+const std::vector<unsigned int> valid_samplerates_ogg = {
     11025,
     22050,
     44100,
