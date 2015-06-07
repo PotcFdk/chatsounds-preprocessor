@@ -49,6 +49,10 @@
 			<Add library="lib\bass.lib" />
 		</Linker>
 		<Unit filename="main.cpp" />
+		<Unit filename="res/windows-fileinfo.rc">
+			<Option compilerVar="WINDRES" />
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="version.h" />
 		<Extensions>
 			<code_completion />

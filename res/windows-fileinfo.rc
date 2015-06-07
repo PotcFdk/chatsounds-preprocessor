@@ -1,0 +1,26 @@
+CHATSOUNDS_PREPROCESSOR_ICON ICON "windows-exe-icon.ico"
+
+1 VERSIONINFO
+FILEVERSION     0,4,3,0
+PRODUCTVERSION  0,4,3,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080904E4"
+    BEGIN
+      VALUE "CompanyName", "PotcFdk"
+      VALUE "FileDescription", "Chatsounds Preprocessor"
+      VALUE "FileVersion", "0.4.3"
+      VALUE "InternalName", "chatsounds-preprocessor"
+      VALUE "LegalCopyright", "PotcFdk"
+      VALUE "OriginalFilename", "chatsounds-preprocessor.exe"
+      VALUE "ProductName", "Chatsounds Preprocessor"
+      VALUE "ProductVersion", "0.4.3"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1252
+  END
+END
