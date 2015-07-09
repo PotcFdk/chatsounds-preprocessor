@@ -80,6 +80,11 @@ void invalid_file_log_close()
     invalid_file_log.close();
 }
 
+bool cmp_ifspath (const boost::filesystem::path& first, const boost::filesystem::path& second)
+{
+    return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
+}
+
 bool bass_init = false;
 void InitBass()
 {
@@ -151,7 +156,7 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
 
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
-    sort(paths.begin(), paths.end()); // To make sure it's sorted.
+    sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
@@ -183,7 +188,7 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
 
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
-    sort(paths.begin(), paths.end()); // To make sure it's sorted.
+    sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
