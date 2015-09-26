@@ -46,6 +46,7 @@ using namespace std;
 typedef vector<boost::filesystem::path> PathList;
 
 typedef tuple<string, double> SoundInfo;
+typedef unordered_map<string, string> SoundMap;
 typedef deque<SoundInfo> SoundList;
 typedef pair<string, SoundList> NamedSoundList;
 typedef deque<NamedSoundList> SoundMasterList;
@@ -84,6 +85,18 @@ bool cmp_ifspath (const boost::filesystem::path& first, const boost::filesystem:
 {
     return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
 }
+
+bool cmp_nsl (const NamedSoundList& a, const NamedSoundList& b)
+{
+    return boost::algorithm::ilexicographical_compare(a.first.c_str(), b.first.c_str());
+}
+
+struct match_char
+{
+    char c;
+    match_char(char c) : c(c) {}
+    bool operator()(char x) const { return x == c; }
+};
 
 bool bass_init = false;
 void InitBass()
@@ -182,13 +195,45 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
     return nlist;
 }
 
+SoundMap ParseSoundMap(boost::filesystem::path path)
+{
+    SoundMap soundmap;
+
+    std::ifstream f(path.string());
+
+    if (!f.fail())
+    {
+        std::string ln, source, destination;
+        while (std::getline(f, ln))
+        {
+            boost::algorithm::trim(ln);
+
+            if (!boost::algorithm::starts_with(ln, "#"))
+            {
+                std::vector<std::string> items;
+                boost::algorithm::split(items, ln, match_char(';'));
+                if (items.size() == 2) // source and destination exist
+                {
+                    source      = boost::algorithm::trim_copy(items.at(0));
+                    destination = boost::algorithm::trim_copy(items.at(1));
+                    soundmap[source] = destination;
+                }
+            }
+        }
+        f.close();
+    }
+
+    return soundmap;
+}
+
 SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
     SoundMasterList list;
+    SoundMap soundmap;
 
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
-    sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
+    sort(paths.begin(), paths.end(), cmp_ifspath);
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
@@ -200,24 +245,48 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
         }
         else if (boost::filesystem::is_regular_file(sub_path)) // It's a single file.
         {
-            SoundInfo soundinfo = GetSoundInfo(*it);
-            if (get<1>(soundinfo) > 0)
+            if (boost::iequals(sub_path.filename().string(), "map.txt"))
             {
-                SoundList sl;
-                sl.push_back(soundinfo);
-                list.push_back(NamedSoundList(
-                                   boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
-                                   sl));
-                sl.clear();
-                sl.shrink_to_fit();
+                soundmap = ParseSoundMap(sub_path);
             }
             else
             {
-                invalid_file_log_open();
-                invalid_file_log << it->generic_string() << endl;
+                SoundInfo soundinfo = GetSoundInfo(*it);
+                if (get<1>(soundinfo) > 0)
+                {
+                    SoundList sl;
+                    sl.push_back(soundinfo);
+                    list.push_back(
+                        NamedSoundList(boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
+                            sl));
+                    sl.clear();
+                    sl.shrink_to_fit();
+                }
+                else
+                {
+                    invalid_file_log_open();
+                    invalid_file_log << it->generic_string() << endl;
+                }
             }
         }
     }
+
+    if (soundmap.size() > 0) // we have a custom sound map
+    {
+        for (SoundMasterList::iterator it = list.begin(); it != list.end(); ++it)
+        {
+            for (SoundMap::iterator it2 = soundmap.begin(); it2 != soundmap.end(); ++it2)
+            {
+                if (boost::iequals(it->first, it2->second))
+                {
+                    list.push_back(NamedSoundList(it2->first, it->second)); // trust me, it2->first and it->second, this makes sense
+                }
+            }
+        }
+    }
+
+    sort(list.begin(), list.end(), cmp_nsl);
+
     return list;
 }
 
