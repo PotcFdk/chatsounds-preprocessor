@@ -31,6 +31,7 @@
 #include <unordered_map>
 
 // Boost
+#include <boost/version.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -863,6 +864,16 @@ void print_versioninfo()
 #else
          << "Compiler   : Unknown compiler" << endl;
 #endif
+
+    // More verbose information
+
+    cout << "Boost Info : " << endl
+         << " * " << BOOST_COMPILER << " on " << BOOST_PLATFORM << endl
+         << " * " << BOOST_STDLIB << endl
+         << " * Boost library: version " << (BOOST_VERSION / 100000)
+         << '.' << ((BOOST_VERSION / 100) % 1000)
+         << '.' << (BOOST_VERSION % 100)
+         << endl;
 }
 
 
