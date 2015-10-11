@@ -6,6 +6,8 @@
 
 #define BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
 
+#define S_TERMINAL_WIDTH 80
+
 #define S_CACHE_VERSION 1
 #define S_CACHE_PATH "chatsounds-preprocessor-cache"
 #define S_INVALID_FILE_LOG_PATH "invalid-soundfiles.txt"
@@ -44,6 +46,8 @@ using namespace std;
 
 
 /// Definitions
+
+const int TERMINAL_WIDTH = S_TERMINAL_WIDTH;
 
 const uint_fast8_t CACHE_VERSION = S_CACHE_VERSION;
 const char * const CACHE_PATH = S_CACHE_PATH;
@@ -117,6 +121,32 @@ void InitBass()
         BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
         bass_init = true;
     }
+}
+
+int intDigits (int number)
+{
+    int digits = 0;
+    while (number) {
+        number /= 10;
+        ++digits;
+    }
+    return digits;
+}
+
+void DisplayGenerationActivity(const bool& added, std::string name, const int& folder_p, const int& folder_t)
+{
+    if (added)
+        cout << "Generat";
+    else
+        cout << "Delet";
+
+    cout << "ing list (" << folder_p << '/' << folder_t << "): ";
+
+    // TERMINAL_WIDTH - "(...)ing list (): " - STATUS - #P - #N - '/' - (? "Assembl" - "Delet" (= 2)) - LASTCHR
+    unsigned short shortn = TERMINAL_WIDTH - 18 - 5 - intDigits(folder_p) - intDigits(folder_t) - 1 - (added ? 2 : 0) - 1;
+
+    name = name.size() >= shortn ? "..." + name.substr(name.size() - shortn + 3) : name + string(shortn - name.size(), ' ');
+    cout << name;
 }
 
 double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
@@ -343,17 +373,12 @@ bool WriteSoundList(const SoundMasterList& list, const string& listname)
 
 void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
-#define P_LENGTH 57
-
-    string p1 = '"' + path.filename().string() + '"' + " (" + boost::lexical_cast<string>(folder_p) + '/' + boost::lexical_cast<string>(folder_t) + ") ...";
-    p1 = p1.size() >= P_LENGTH ? "..." + p1.substr(p1.size() - P_LENGTH + 3) : p1 + string(P_LENGTH - p1.size(), ' ');
-
-    cout << "Generating list: " << p1 << " ";
+    DisplayGenerationActivity(true, path.filename().string(), folder_p, folder_t);
 
     SoundMasterList list = ProcessSoundFolder(path);
     bool success = WriteSoundList(list, path.filename().string());
 
-    cout << (success ? "done" : "fail") << endl;
+    cout << (success ? " done" : " fail") << endl;
 }
 
 void ProcessSoundFolders(const boost::filesystem::path& path)
@@ -394,13 +419,9 @@ void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t
     }
     else if(boost::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
     {
-#define P2_LENGTH 59
-        string p1 = '"' + name + '"' + " (" + boost::lexical_cast<string>(folder_p) + '/' + boost::lexical_cast<string>(folder_t) + ") ...";
-        p1 = p1.size() >= P2_LENGTH ? "..." + p1.substr(p1.size() - P2_LENGTH + 3) : p1 + string(P2_LENGTH - p1.size(), ' ');
-
-        cout << "Deleting list: " << p1 << " ";
+        DisplayGenerationActivity(false, name, folder_p, folder_t);
         boost::filesystem::remove(list_path);
-        cout << "done" << endl;
+        cout << " done" << endl;
     }
 }
 
