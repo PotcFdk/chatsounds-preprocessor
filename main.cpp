@@ -50,7 +50,7 @@ using namespace std;
 
 const int TERMINAL_WIDTH = S_TERMINAL_WIDTH;
 
-const uint_fast8_t CACHE_VERSION = S_CACHE_VERSION;
+const unsigned int CACHE_VERSION = S_CACHE_VERSION;
 const char * const CACHE_PATH = S_CACHE_PATH;
 const char * const INVALID_FILE_LOG_PATH = S_INVALID_FILE_LOG_PATH;
 
