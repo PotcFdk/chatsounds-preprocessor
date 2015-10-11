@@ -208,7 +208,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             }
         }
     }
-    return false;
+    return boost::none;
 }
 
 NamedSoundList ProcessSoundGroup(const boost::filesystem::path& path)
