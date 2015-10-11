@@ -241,7 +241,6 @@ SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a su
 
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
-    sort(paths.begin(), paths.end(), cmp_ifspath);
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
