@@ -4,8 +4,6 @@
 
 // Settings
 
-#define BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
-
 #define S_TERMINAL_WIDTH 80
 
 #define S_CACHE_VERSION 1
@@ -15,6 +13,8 @@
 #define S_LISTPATH "lua/chatsounds/lists_nosend"
 #define S_SOUNDPATH "sound/chatsounds/autoadd"
 #define S_SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
+
+#define S_BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
 
 /// Includes
 
@@ -56,6 +56,8 @@ const char * const INVALID_FILE_LOG_PATH = S_INVALID_FILE_LOG_PATH;
 const char * const LISTPATH  = S_LISTPATH;
 const char * const SOUNDPATH = S_SOUNDPATH;
 const uint_fast8_t SOUNDPATH_IGNORELEN = S_SOUNDPATH_IGNORELEN;
+
+const char * const BUGTRACKER_LINK = S_BUGTRACKER_LINK;
 
 typedef vector<boost::filesystem::path> PathList;
 
