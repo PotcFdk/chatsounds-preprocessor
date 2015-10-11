@@ -411,12 +411,19 @@ void UpdateSoundSets(const unordered_map<string, bool>& SoundCacheDiff)
 MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const SoundCache& cache2)
 {
     unordered_map<string, bool> list;
+    bool diff;
 
     // Add differences to list:
 
-    for ( auto it = cache1.begin(); it != cache1.end(); ++it )
+    for (auto it = cache1.begin(); it != cache1.end(); ++it)
     {
-        if (cache2[it->first] != it->second)
+        try {
+            diff = cache2.at(it->first) != it->second;
+        } catch (std::out_of_range e) {
+            diff = true;
+        }
+
+        if (diff)
         {
             boost::filesystem::path path(it->first);
 
@@ -436,9 +443,15 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
         }
     }
 
-    for ( auto it = cache2.begin(); it != cache2.end(); ++it )
+    for (auto it = cache2.begin(); it != cache2.end(); ++it)
     {
-        if (cache1[it->first] != it->second)
+        try {
+            diff = cache1.at(it->first) != it->second;
+        } catch (std::out_of_range e) {
+            diff = true;
+        }
+
+        if (diff)
         {
             boost::filesystem::path path(it->first);
 
