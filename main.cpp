@@ -345,9 +345,9 @@ void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p,
     cout << "Generating list: " << p1 << " ";
 
     SoundMasterList list = ProcessSoundFolder(path);
-    BuildSoundList(list, path.filename().string());
+    bool success = WriteSoundList(list, path.filename().string());
 
-    cout << "done" << endl;
+    cout << (success ? "done" : "fail") << endl;
 }
 
 void ProcessSoundFolders(const boost::filesystem::path& path)
