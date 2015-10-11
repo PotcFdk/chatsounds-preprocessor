@@ -388,11 +388,11 @@ void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t
     string list_path = string(LISTPATH) + "/" + name + ".lua";
     boost::filesystem::path soundsetpath(string(SOUNDPATH) + "/" + name);
 
-    if (boost::filesystem::is_directory(soundsetpath))
+    if (boost::filesystem::is_directory(soundsetpath)) // If the directory exists.
     {
         UpdateSoundFolder(soundsetpath, folder_p, folder_t);
     }
-    else if(boost::filesystem::is_regular_file(list_path))
+    else if(boost::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
     {
 #define P2_LENGTH 59
         string p1 = '"' + name + '"' + " (" + boost::lexical_cast<string>(folder_p) + '/' + boost::lexical_cast<string>(folder_t) + ") ...";
