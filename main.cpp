@@ -78,7 +78,8 @@ const char * _DISTRIBUTION_VERSION = DISTRIBUTION_VERSION;
 const bool _DISTRIBUTION_VERSION = false;
 #endif // DISTRIBUTION_VERSION
 
-const std::vector<unsigned int> valid_samplerates_ogg = {
+const std::vector<unsigned int> valid_samplerates_ogg =
+{
     11025,
     22050,
     44100,
@@ -109,7 +110,10 @@ struct match_char
 {
     char c;
     match_char(char c) : c(c) {}
-    bool operator()(char x) const { return x == c; }
+    bool operator()(char x) const
+    {
+        return x == c;
+    }
 };
 
 bool bass_init = false;
@@ -126,7 +130,8 @@ void InitBass()
 int intDigits (int number)
 {
     int digits = 0;
-    while (number) {
+    while (number)
+    {
         number /= 10;
         ++digits;
     }
@@ -161,14 +166,14 @@ double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Ge
 
 boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
 {
-    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-        boost::filesystem::path ret ("\\\\?\\");
-        ret += boost::filesystem::absolute(path);
-        ret.make_preferred();
-        return ret;
-    #else
-        return boost::filesystem::absolute(path);
-    #endif
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+    boost::filesystem::path ret ("\\\\?\\");
+    ret += boost::filesystem::absolute(path);
+    ret.make_preferred();
+    return ret;
+#else
+    return boost::filesystem::absolute(path);
+#endif
 }
 
 boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
@@ -187,9 +192,9 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             double duration = GetSoundDuration(full_path, &freq);
             if (
                 ext != ".ogg"
-                    || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
-                        != valid_samplerates_ogg.end())
-               )
+                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
+                    != valid_samplerates_ogg.end())
+            )
             {
                 boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
                 return SoundInfo(s_path, duration);
@@ -295,7 +300,7 @@ SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a su
                     sl.push_back(*soundinfo);
                     list.push_back(
                         NamedSoundList(boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
-                            sl));
+                                       sl));
                 }
                 else
                 {
@@ -357,8 +362,8 @@ bool WriteSoundList(const SoundMasterList& list, const string& listname)
                     f << ',';
 
                 f << "{path=\"" << get<0>(*it2) << "\",length="
-                    << std::setprecision(17)
-                    << get<1>(*it2) << "}";
+                  << std::setprecision(17)
+                  << get<1>(*it2) << "}";
 
             }
             f << "}\n";
@@ -444,9 +449,12 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
 
     for (auto it = cache1.begin(); it != cache1.end(); ++it)
     {
-        try {
+        try
+        {
             diff = cache2.at(it->first) != it->second;
-        } catch (std::out_of_range e) {
+        }
+        catch (std::out_of_range e)
+        {
             diff = true;
         }
 
@@ -472,9 +480,12 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
 
     for (auto it = cache2.begin(); it != cache2.end(); ++it)
     {
-        try {
+        try
+        {
             diff = cache1.at(it->first) != it->second;
-        } catch (std::out_of_range e) {
+        }
+        catch (std::out_of_range e)
+        {
             diff = true;
         }
 
@@ -594,14 +605,14 @@ SoundCache GenerateSoundCache()
                         if (boost::filesystem::is_regular_file(itg->status()))
                         {
                             soundcache[itg->path().generic_string()]
-                                    = boost::filesystem::last_write_time(GetAbsolutePath(itg->path()));
+                                = boost::filesystem::last_write_time(GetAbsolutePath(itg->path()));
                         }
                     }
                 }
                 else
                 {
                     soundcache[its->path().generic_string()]
-                            = boost::filesystem::last_write_time(GetAbsolutePath(its->path()));
+                        = boost::filesystem::last_write_time(GetAbsolutePath(its->path()));
                 }
             }
         }
@@ -716,7 +727,7 @@ int DiffUpdate()
     catch (boost::filesystem::filesystem_error e)
     {
         cout << "  ERR" << endl
-            << "Boost exception: " << e.what() << endl;
+             << "Boost exception: " << e.what() << endl;
         throw 60;
     }
 
@@ -732,12 +743,12 @@ int DiffUpdate()
     if (boost::filesystem::exists(INVALID_FILE_LOG_PATH))
     {
         cout << endl << "[Information] "
-            "Some invalid files were found during the generation." << endl
-            << "Please open '" << INVALID_FILE_LOG_PATH << "' and double-check these files." << endl
-            << "They might be corrupt, empty or have an unsupported sample rate." << endl
-            << "If you have confirmed they work in-game and believe this is an error, visit" << endl
-            << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl
-            << "Press ENTER to exit..." << endl;
+             "Some invalid files were found during the generation." << endl
+             << "Please open '" << INVALID_FILE_LOG_PATH << "' and double-check these files." << endl
+             << "They might be corrupt, empty or have an unsupported sample rate." << endl
+             << "If you have confirmed they work in-game and believe this is an error, visit" << endl
+             << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl
+             << "Press ENTER to exit..." << endl;
         cin.get();
     }
 
@@ -827,29 +838,29 @@ void print_versioninfo()
          << AutoVersion::DATE
          << endl
 
-    #if defined(__clang__)
+#if defined(__clang__)
          << "Compiler   : Clang/LLVM, version "
-         #if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
-            << __clang_major__ << '.' << __clang_minor__ << '.' << __clang_patchlevel__
-         #else
-            << __VERSION__
-         #endif
-          << endl;
-    #elif defined(__GNUG__)
-         << "Compiler   : GNU G++, version "
-         #if defined(__GNUG__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
-            << __GNUG__ << '.' << __GNUC_MINOR__ << '.' << __GNUC_PATCHLEVEL__
-         #else
-            << __VERSION__
-         #endif
+#if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
+         << __clang_major__ << '.' << __clang_minor__ << '.' << __clang_patchlevel__
+#else
+         << __VERSION__
+#endif
          << endl;
-    #elif defined(_MSC_VER)
+#elif defined(__GNUG__)
+         << "Compiler   : GNU G++, version "
+#if defined(__GNUG__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
+         << __GNUG__ << '.' << __GNUC_MINOR__ << '.' << __GNUC_PATCHLEVEL__
+#else
+         << __VERSION__
+#endif
+         << endl;
+#elif defined(_MSC_VER)
          << "Compiler   : Microsoft Visual Studio, version "  << _MSC_VER << endl;
-    #elif defined(__VERSION__)
+#elif defined(__VERSION__)
          << "Compiler   : Unknown compiler, version " << __VERSION__ << endl;
-    #else
+#else
          << "Compiler   : Unknown compiler" << endl;
-    #endif
+#endif
 }
 
 
