@@ -186,9 +186,9 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             float freq = 0;
             double duration = GetSoundDuration(full_path, &freq);
             if (
-                ( ext != ".ogg"
+                ext != ".ogg"
                     || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
-                        != valid_samplerates_ogg.end()) )
+                        != valid_samplerates_ogg.end())
                )
             {
                 boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
