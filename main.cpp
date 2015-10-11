@@ -307,30 +307,28 @@ SoundMasterList ProcessSoundFolder(const boost::filesystem::path& path)
 
 bool WriteSoundList(const SoundMasterList& list, const string& listname)
 {
-    bool first_in_multientry;
-    string soundlist = "c.StartList(\"" + listname + "\")\n";
-
-    for (SoundMasterList::const_iterator it=list.begin() ; it < list.end(); it++ )
-    {
-        first_in_multientry = true;
-        SoundList sndlist = get<1>(*it);
-        soundlist += "L[\"" + get<0>(*it) + "\"]={";
-        for (SoundList::const_iterator it2=sndlist.begin() ; it2 < sndlist.end(); it2++ )
-        {
-            SoundInfo sndinfo = *it2;
-            soundlist += (first_in_multientry ? "{path=\"" : ",{path=\"")
-                + get<0>(sndinfo) + "\",length=" + boost::lexical_cast<std::string>(get<1>(sndinfo)) + "}";
-            first_in_multientry = false;
-        }
-        soundlist += "}\n";
-    }
-
-    soundlist += "c.EndList()";
-
     std::ofstream f(string(LISTPATH) + "/" + listname + ".lua", std::ofstream::binary);
     if (!f.fail())
     {
-        f << soundlist;
+        bool first_in_multientry;
+        f << "c.StartList(\"" << listname << "\")\n";
+
+        for (SoundMasterList::const_iterator it=list.begin() ; it < list.end(); it++ )
+        {
+            first_in_multientry = true;
+            SoundList sndlist = get<1>(*it);
+            f << "L[\"" << get<0>(*it) << "\"]={";
+            for (SoundList::const_iterator it2=sndlist.begin() ; it2 < sndlist.end(); it2++ )
+            {
+                SoundInfo sndinfo = *it2;
+                f << (first_in_multientry ? "{path=\"" : ",{path=\"")
+                    << get<0>(sndinfo) << "\",length=" << get<1>(sndinfo) << "}";
+                first_in_multientry = false;
+            }
+            f << "}\n";
+        }
+
+        f << "c.EndList()";
         f.close();
         return true;
     }
