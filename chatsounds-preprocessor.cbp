@@ -16,9 +16,9 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add library="lib\boost\debug\libboost_system-mgw47-mt-d-1_53.a" />
-					<Add library="lib\boost\debug\libboost_filesystem-mgw47-mt-d-1_53.a" />
-					<Add library="lib\boost\debug\libboost_serialization-mgw47-mt-d-1_53.a" />
+					<Add option="-lboost_system-d" />
+					<Add option="-lboost_filesystem-d" />
+					<Add option="-lboost_serialization-d" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -33,9 +33,9 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add library="lib\boost\release\libboost_system-mgw47-mt-1_53.a" />
-					<Add library="lib\boost\release\libboost_filesystem-mgw47-mt-1_53.a" />
-					<Add library="lib\boost\release\libboost_serialization-mgw47-mt-1_53.a" />
+					<Add option="-lboost_system" />
+					<Add option="-lboost_filesystem" />
+					<Add option="-lboost_serialization" />
 				</Linker>
 			</Target>
 		</Build>
