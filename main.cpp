@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 #include "version.h"
 
@@ -314,15 +315,21 @@ bool WriteSoundList(const SoundMasterList& list, const string& listname)
 
         for (SoundMasterList::const_iterator it=list.begin() ; it < list.end(); it++ )
         {
+            // info: it[0] = list name; it[1] = sound list
             first_in_multientry = true;
-            SoundList sndlist = get<1>(*it);
             f << "L[\"" << get<0>(*it) << "\"]={";
-            for (SoundList::const_iterator it2=sndlist.begin() ; it2 < sndlist.end(); it2++ )
+            for (SoundList::const_iterator it2=get<1>(*it).begin() ; it2 < get<1>(*it).end(); it2++ )
             {
-                SoundInfo sndinfo = *it2;
-                f << (first_in_multientry ? "{path=\"" : ",{path=\"")
-                    << get<0>(sndinfo) << "\",length=" << get<1>(sndinfo) << "}";
-                first_in_multientry = false;
+                // info: it2[0] = path; it2[1] = duration
+                if (first_in_multientry)
+                    first_in_multientry = false;
+                else
+                    f << ',';
+
+                f << "{path=\"" << get<0>(*it2) << "\",length="
+                    << std::setprecision(17)
+                    << get<1>(*it2) << "}";
+
             }
             f << "}\n";
         }
