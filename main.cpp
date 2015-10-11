@@ -118,7 +118,7 @@ void InitBass()
     }
 }
 
-double GetSoundDuration(boost::filesystem::path path, float * freq) // Gets the duration of a sound.
+double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
 {
     HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
     QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
@@ -128,7 +128,7 @@ double GetSoundDuration(boost::filesystem::path path, float * freq) // Gets the 
     return length;
 }
 
-boost::filesystem::path GetAbsolutePath(boost::filesystem::path path)
+boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
 {
     #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
         boost::filesystem::path ret ("\\\\?\\");
@@ -140,7 +140,7 @@ boost::filesystem::path GetAbsolutePath(boost::filesystem::path path)
     #endif
 }
 
-SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist about a sound.
+boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
 {
     if (path.has_extension())
     {
@@ -169,10 +169,10 @@ SoundInfo GetSoundInfo(boost::filesystem::path path) // Assembles an infolist ab
             }
         }
     }
-    return SoundInfo("",0);
+    return false;
 }
 
-NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
+NamedSoundList ProcessSoundGroup(const boost::filesystem::path& path)
 {
     SoundList list;
 
@@ -182,14 +182,13 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
-        boost::filesystem::path sub_path = GetAbsolutePath(*it);
+        boost::filesystem::path sub_path = GetAbsolutePath((*it));
 
         if (boost::filesystem::is_regular_file(sub_path))
         {
-            SoundInfo soundinfo = GetSoundInfo(*it);
-            if (get<1>(soundinfo) > 0)
+            if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
             {
-                list.push_back(soundinfo);
+                list.push_back(*soundinfo);
             }
             else
             {
@@ -204,7 +203,7 @@ NamedSoundList ProcessSoundGroup(boost::filesystem::path path)
     return nlist;
 }
 
-SoundMap ParseSoundMap(boost::filesystem::path path)
+SoundMap ParseSoundMap(const boost::filesystem::path& path)
 {
     SoundMap soundmap;
 
@@ -235,7 +234,7 @@ SoundMap ParseSoundMap(boost::filesystem::path path)
     return soundmap;
 }
 
-SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirectory and compiles all the soundinfos into a list.
+SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
     SoundMasterList list;
     SoundMap soundmap;
@@ -260,11 +259,10 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
             }
             else
             {
-                SoundInfo soundinfo = GetSoundInfo(*it);
-                if (get<1>(soundinfo) > 0)
+                if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
                 {
                     SoundList sl;
-                    sl.push_back(soundinfo);
+                    sl.push_back(*soundinfo);
                     list.push_back(
                         NamedSoundList(boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
                             sl));
@@ -299,7 +297,7 @@ SoundMasterList ProcessSounds(boost::filesystem::path path) // Scans a subdirect
     return list;
 }
 
-SoundMasterList ProcessSoundFolder(boost::filesystem::path path)
+SoundMasterList ProcessSoundFolder(const boost::filesystem::path& path)
 {
     if (is_directory(path))
     {
@@ -309,7 +307,7 @@ SoundMasterList ProcessSoundFolder(boost::filesystem::path path)
     return SoundMasterList();
 }
 
-void BuildSoundList(SoundMasterList list, string listname)
+bool WriteSoundList(const SoundMasterList& list, const string& listname)
 {
     bool first_in_multientry;
     string soundlist = "c.StartList(\"" + listname + "\")\n";
@@ -336,10 +334,12 @@ void BuildSoundList(SoundMasterList list, string listname)
     {
         f << soundlist;
         f.close();
+        return true;
     }
+    return false;
 }
 
-void UpdateSoundFolder(boost::filesystem::path path, int folder_p, int folder_t)
+void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
 #define P_LENGTH 57
 
@@ -354,7 +354,7 @@ void UpdateSoundFolder(boost::filesystem::path path, int folder_p, int folder_t)
     cout << "done" << endl;
 }
 
-void ProcessSoundFolders(boost::filesystem::path path)
+void ProcessSoundFolders(const boost::filesystem::path& path)
 {
     const int d_count = std::count_if(
                             boost::filesystem::directory_iterator(path),
@@ -373,7 +373,7 @@ void ProcessSoundFolders(boost::filesystem::path path)
     }
 }
 
-void ClearFolder(boost::filesystem::path path)
+void ClearFolder(const boost::filesystem::path& path)
 {
     for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
     {
@@ -381,7 +381,7 @@ void ClearFolder(boost::filesystem::path path)
     }
 }
 
-void UpdateSoundSet(string name, int folder_p, int folder_t)
+void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t)
 {
     string list_path = string(LISTPATH) + "/" + name + ".lua";
     boost::filesystem::path soundsetpath(string(SOUNDPATH) + "/" + name);
@@ -402,7 +402,7 @@ void UpdateSoundSet(string name, int folder_p, int folder_t)
     }
 }
 
-void UpdateSoundSets(unordered_map<string, bool> SoundCacheDiff)
+void UpdateSoundSets(const unordered_map<string, bool>& SoundCacheDiff)
 {
     int i = 1;
     for(auto it = SoundCacheDiff.begin(); it != SoundCacheDiff.end(); ++it)
@@ -412,7 +412,7 @@ void UpdateSoundSets(unordered_map<string, bool> SoundCacheDiff)
     }
 }
 
-MissingSoundCacheFiles GetModifiedSoundSets(SoundCache cache1, SoundCache cache2)
+MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const SoundCache& cache2)
 {
     unordered_map<string, bool> list;
 
@@ -465,7 +465,7 @@ MissingSoundCacheFiles GetModifiedSoundSets(SoundCache cache1, SoundCache cache2
     return list;
 }
 
-void AddMissingLists(MissingSoundCacheFiles * list, SoundCache soundcache)
+void AddMissingLists(MissingSoundCacheFiles& list, const SoundCache& soundcache)
 {
     for ( auto it = soundcache.begin(); it != soundcache.end(); ++it )
     {
@@ -487,7 +487,7 @@ void AddMissingLists(MissingSoundCacheFiles * list, SoundCache soundcache)
         string list_path = string(LISTPATH) + "/" + name + ".lua";
         if (!boost::filesystem::is_regular_file(list_path))
         {
-            (*list)[name] = true;
+            list[name] = true;
         }
     }
 }
@@ -673,7 +673,7 @@ int DiffUpdate()
     {
         new_soundcache = GenerateSoundCache();
         to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
-        AddMissingLists(&to_be_updated, new_soundcache);
+        AddMissingLists(to_be_updated, new_soundcache);
     }
     catch (boost::filesystem::filesystem_error e)
     {
