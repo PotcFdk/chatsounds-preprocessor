@@ -266,8 +266,6 @@ SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a su
                     list.push_back(
                         NamedSoundList(boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
                             sl));
-                    sl.clear();
-                    sl.shrink_to_fit();
                 }
                 else
                 {
