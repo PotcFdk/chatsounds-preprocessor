@@ -659,6 +659,7 @@ int DiffUpdate()
         throw 1;
     }
 
+    cout << "Reading sound cache..." << endl;
     SoundCache soundcache;
     try
     {
@@ -673,13 +674,13 @@ int DiffUpdate()
     {
         if (e == 11) {} // No cache file.
         else if (e == 12)
-            cout << "Incompatible Cache, reset." << endl;
+            cout << "Incompatible sound cache, reset." << endl;
         else
             cout << "ERROR " << e << endl;
         EraseSoundCache();
     }
 
-    cout << endl << "Scanning sounds...";
+    cout << "Scanning sounds...";
 
     SoundCache new_soundcache;
     MissingSoundCacheFiles to_be_updated;
@@ -687,6 +688,7 @@ int DiffUpdate()
     try
     {
         new_soundcache = GenerateSoundCache();
+        cout << endl << "Calculating difference...";
         to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
         AddMissingLists(to_be_updated, new_soundcache);
     }
@@ -697,7 +699,7 @@ int DiffUpdate()
         throw 60;
     }
 
-    cout << "  OK" << endl;
+    cout << "  OK" << endl << endl;
 
     UpdateSoundSets(to_be_updated);
     WriteSoundCache(new_soundcache);
