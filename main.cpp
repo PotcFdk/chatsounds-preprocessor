@@ -28,6 +28,7 @@
 // List
 #include <tuple>
 #include <deque>
+#include <map>
 #include <unordered_map>
 
 // Boost
@@ -62,11 +63,11 @@ const char * const BUGTRACKER_LINK = S_BUGTRACKER_LINK;
 
 typedef vector<boost::filesystem::path> PathList;
 
-typedef tuple<string, double> SoundInfo;
 typedef unordered_map<string, string> SoundMap;
-typedef deque<SoundInfo> SoundList;
-typedef pair<string, SoundList> NamedSoundList;
-typedef deque<NamedSoundList> SoundMasterList;
+
+typedef pair<string, double> SoundInfo;
+typedef deque<SoundInfo> SoundInfos;
+typedef map<string, SoundInfos> SoundInfoMap;
 
 typedef unordered_map<string, int> SoundCache;
 typedef unordered_map<string, bool> MissingSoundCacheFiles;
@@ -104,9 +105,9 @@ bool cmp_ifspath (const boost::filesystem::path& first, const boost::filesystem:
     return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
 }
 
-bool cmp_nsl (const NamedSoundList& a, const NamedSoundList& b)
+bool cmp_si (const SoundInfo& first, const SoundInfo& second)
 {
-    return boost::algorithm::ilexicographical_compare(a.first.c_str(), b.first.c_str());
+    return boost::algorithm::ilexicographical_compare(first.first.c_str(), second.first.c_str());
 }
 
 struct match_char
@@ -211,9 +212,9 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
     return boost::none;
 }
 
-NamedSoundList ProcessSoundGroup(const boost::filesystem::path& path)
+SoundInfos ProcessSoundGroup(const boost::filesystem::path& path)
 {
-    SoundList list;
+    SoundInfos list;
 
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
@@ -236,10 +237,7 @@ NamedSoundList ProcessSoundGroup(const boost::filesystem::path& path)
             }
         }
     }
-    NamedSoundList nlist(boost::algorithm::to_lower_copy(path.filename().string()), list);
-    list.clear();
-    list.shrink_to_fit();
-    return nlist;
+    return list;
 }
 
 SoundMap ParseSoundMap(const boost::filesystem::path& path)
@@ -273,10 +271,12 @@ SoundMap ParseSoundMap(const boost::filesystem::path& path)
     return soundmap;
 }
 
-SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
+SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
-    SoundMasterList list;
+    SoundInfoMap list;
     SoundMap soundmap;
+
+    string _info_list_name;
 
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
@@ -287,7 +287,20 @@ SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a su
 
         if (is_directory(sub_path)) // It's a sound group.
         {
-            list.push_back(ProcessSoundGroup(*it));
+            SoundInfos info = ProcessSoundGroup(*it);
+            _info_list_name = boost::algorithm::to_lower_copy(it->filename().string());
+            if (list.find (_info_list_name) == list.end())
+            { // Doesn't exist, just add it.
+                list[_info_list_name] = info;
+            }
+            else
+            { // Exists, merge it.
+                SoundInfos * info2 = &list[_info_list_name];
+                for (SoundInfos::const_iterator it = info.begin(); it != info.end(); ++it)
+                {
+                    info2->push_back(*it);
+                }
+            }
         }
         else if (boost::filesystem::is_regular_file(sub_path)) // It's a single file.
         {
@@ -299,11 +312,16 @@ SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a su
             {
                 if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
                 {
-                    SoundList sl;
-                    sl.push_back(*soundinfo);
-                    list.push_back(
-                        NamedSoundList(boost::algorithm::to_lower_copy(it->filename().replace_extension("").string()),
-                                       sl));
+                    SoundInfo info = *soundinfo;
+                    _info_list_name = boost::algorithm::to_lower_copy(it->filename().replace_extension("").string());
+                    if (list.find (_info_list_name) == list.end())
+                    { // Doesn't exist, just add it.
+                        list[_info_list_name] = SoundInfos {info};
+                    }
+                    else
+                    { // Exists, add it.
+                        list[_info_list_name].push_back(info);
+                    }
                 }
                 else
                 {
@@ -316,34 +334,36 @@ SoundMasterList ProcessSounds(const boost::filesystem::path& path) // Scans a su
 
     if (soundmap.size() > 0) // we have a custom sound map
     {
-        for (SoundMasterList::iterator it = list.begin(); it != list.end(); ++it)
+        for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it)
         {
             for (SoundMap::iterator it2 = soundmap.begin(); it2 != soundmap.end(); ++it2)
             {
                 if (boost::iequals(it->first, it2->second))
                 {
-                    list.push_back(NamedSoundList(it2->first, it->second)); // trust me, it2->first and it->second, this makes sense
+                    list[it2->first] = it->second; // trust me, it2->first and it->second, this makes sense
                 }
             }
         }
     }
 
-    sort(list.begin(), list.end(), cmp_nsl);
+    // Sort SoundInfo elements inside the SoundInfos in our SoundInfoMap.
+    for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it)
+    {
+        sort (it->second.begin(), it->second.end(), cmp_si);
+    }
 
     return list;
 }
 
-SoundMasterList ProcessSoundFolder(const boost::filesystem::path& path)
+SoundInfoMap ProcessSoundFolder(const boost::filesystem::path& path)
 {
     if (is_directory(path))
-    {
-        SoundMasterList list = ProcessSounds(path);
-        return list;
-    }
-    return SoundMasterList();
+        return ProcessSounds(path);
+    else
+        return SoundInfoMap();
 }
 
-bool WriteSoundList(const SoundMasterList& list, const string& listname)
+bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 {
     std::ofstream f(string(LISTPATH) + "/" + listname + ".lua", std::ofstream::binary);
     if (!f.fail())
@@ -351,12 +371,12 @@ bool WriteSoundList(const SoundMasterList& list, const string& listname)
         bool first_in_multientry;
         f << "c.StartList(\"" << listname << "\")\n";
 
-        for (SoundMasterList::const_iterator it=list.begin() ; it < list.end(); it++ )
+        for (SoundInfoMap::const_iterator it = list.begin(); it != list.end(); ++it)
         {
-            // info: it[0] = list name; it[1] = sound list
+            // info: it[0] ("first") = list name; it[1] ("second") = sound list
             first_in_multientry = true;
-            f << "L[\"" << get<0>(*it) << "\"]={";
-            for (SoundList::const_iterator it2=get<1>(*it).begin() ; it2 < get<1>(*it).end(); it2++ )
+            f << "L[\"" << it->first << "\"]={";
+            for (SoundInfos::const_iterator it2 = it->second.begin(); it2 < it->second.end(); ++it2)
             {
                 // info: it2[0] = path; it2[1] = duration
                 if (first_in_multientry)
@@ -364,9 +384,9 @@ bool WriteSoundList(const SoundMasterList& list, const string& listname)
                 else
                     f << ',';
 
-                f << "{path=\"" << get<0>(*it2) << "\",length="
+                f << "{path=\"" << it2->first << "\",length="
                   << std::setprecision(17)
-                  << get<1>(*it2) << "}";
+                  << it2->second << "}";
 
             }
             f << "}\n";
@@ -383,8 +403,7 @@ void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p,
 {
     DisplayGenerationActivity(true, path.filename().string(), folder_p, folder_t);
 
-    SoundMasterList list = ProcessSoundFolder(path);
-    bool success = WriteSoundList(list, path.filename().string());
+    bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
 
     cout << (success ? " done" : " fail") << endl;
 }
