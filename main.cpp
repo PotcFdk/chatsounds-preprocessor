@@ -63,7 +63,7 @@ const char * const BUGTRACKER_LINK = S_BUGTRACKER_LINK;
 
 typedef vector<boost::filesystem::path> PathList;
 
-typedef unordered_map<string, string> SoundMap;
+typedef unordered_map<string, pair<string, bool> > SoundMap;
 
 typedef pair<string, double> SoundInfo;
 typedef deque<SoundInfo> SoundInfos;
@@ -248,7 +248,9 @@ SoundMap ParseSoundMap(const boost::filesystem::path& path)
 
     if (!f.fail())
     {
-        std::string ln, source, destination;
+        std::string ln, source, alias, options;
+        bool replace;
+        int items_size;
         while (std::getline(f, ln))
         {
             boost::algorithm::trim(ln);
@@ -257,11 +259,25 @@ SoundMap ParseSoundMap(const boost::filesystem::path& path)
             {
                 std::vector<std::string> items;
                 boost::algorithm::split(items, ln, match_char(';'));
-                if (items.size() == 2) // source and destination exist
+                items_size = items.size();
+                if (items_size == 2 || items_size == 3) // source and alias exist
                 {
-                    source      = boost::algorithm::trim_copy(items.at(0));
-                    destination = boost::algorithm::trim_copy(items.at(1));
-                    soundmap[source] = destination;
+                    source = boost::algorithm::trim_copy(items.at(0));
+                    alias  = boost::algorithm::trim_copy(items.at(1));
+
+                    replace = false; // default behavior: don't replace, just alias
+
+                    if (items_size == 3)
+                    {
+                        options = boost::algorithm::trim_copy(items.at(2));
+                        boost::algorithm::to_lower(options);
+                        if (boost::algorithm::contains(options, "replace"))
+                        {
+                            replace = true;
+                        }
+                    }
+
+                    soundmap[source] = make_pair(alias, replace);
                 }
             }
         }
@@ -334,15 +350,27 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
 
     if (soundmap.size() > 0) // we have a custom sound map
     {
-        for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it)
+        SoundInfoMap::iterator it = list.begin();
+        while (it != list.end())
         {
             for (SoundMap::iterator it2 = soundmap.begin(); it2 != soundmap.end(); ++it2)
             {
-                if (boost::iequals(it->first, it2->second))
+                // Remember: it2 = [ source : ( alias, (bool) replace ) ]
+                if (boost::iequals(it->first, it2->first)) // soundname == source?
                 {
-                    list[it2->first] = it->second; // trust me, it2->first and it->second, this makes sense
+                    cout << endl << "aliasing new " << get<0>(it2->second) << " = " << (it->first) << endl;
+                    list[get<0>(it2->second)] = it->second; // list[alias] = source data
+                    if (get<1>(it2->second)) // Replace?
+                    {
+                        it = list.erase(it); // Yes, replace (-> delete the source entry).
+                        // We're /so/ done with this element.
+                        // Also, we took care of the next `it`, so let's just continue the outer loop.
+                        goto restartSoundInfoMapperLoop;
+                    }
                 }
             }
+            ++it;
+            restartSoundInfoMapperLoop:;
         }
     }
 
