@@ -358,7 +358,6 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
                 // Remember: it2 = [ source : ( alias, (bool) replace ) ]
                 if (boost::iequals(it->first, it2->first)) // soundname == source?
                 {
-                    cout << endl << "aliasing new " << get<0>(it2->second) << " = " << (it->first) << endl;
                     list[get<0>(it2->second)] = it->second; // list[alias] = source data
                     if (get<1>(it2->second)) // Replace?
                     {
