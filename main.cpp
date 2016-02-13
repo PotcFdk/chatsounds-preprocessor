@@ -145,11 +145,11 @@ int intDigits (int number)
 void DisplayGenerationActivity(const bool& added, std::string name, const int& folder_p, const int& folder_t)
 {
     if (added)
-        cout << "Generat";
+        cout << "Genera";
     else
-        cout << "Delet";
+        cout << "Dele";
 
-    cout << "ing list (" << folder_p << '/' << folder_t << "): ";
+    cout << "ting list (" << folder_p << '/' << folder_t << "): ";
 
     // TERMINAL_WIDTH - "(...)ing list (): " - STATUS - #P - #N - '/' - (? "Assembl" - "Delet" (= 2)) - LASTCHR
     unsigned short shortn = TERMINAL_WIDTH - 18 - 5 - intDigits(folder_p) - intDigits(folder_t) - 1 - (added ? 2 : 0) - 1;
