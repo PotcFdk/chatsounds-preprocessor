@@ -100,6 +100,42 @@ void invalid_file_log_close()
     invalid_file_log.close();
 }
 
+class ErrorLogger
+{
+private:
+    bool in_line = true;
+
+public:
+    void reset () { in_line = true; }
+
+    typedef std::basic_ostream<char, std::char_traits<char> > CoutType;
+    typedef CoutType& (*StandardEndLine)(CoutType&);
+
+    ErrorLogger& operator << (StandardEndLine manip)
+    {
+        invalid_file_log_open();
+        invalid_file_log << std::endl;
+        std::cout << std::endl;
+        in_line = false;
+        return *this;
+    }
+
+    template <typename T> ErrorLogger& operator << (const T& value)
+    {
+        invalid_file_log_open();
+        invalid_file_log << value;
+        if (in_line)
+        {
+            std::cout << std::endl;
+            in_line = false;
+        }
+        std::cout << value;
+        return *this;
+    }
+};
+
+ErrorLogger error_log;
+
 bool cmp_ifspath (const boost::filesystem::path& first, const boost::filesystem::path& second)
 {
     return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
@@ -194,7 +230,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
         const string str_path = path.relative_path().string();
         if (any_of(str_path.begin(), str_path.end(), is_upper()))
         {
-            cout << "[uppercase characters in path] " << str_path << endl;
+            error_log << "[uppercase characters in path] " << str_path << endl;
             return boost::none;
         }
     }
@@ -221,7 +257,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             }
             else
             {
-                cout << "[invalid sample rate] " << s_path << ": " << freq << endl;
+                error_log << "[invalid sample rate] " << s_path << ": " << freq << endl;
             }
         }
     }
@@ -245,11 +281,6 @@ SoundInfos ProcessSoundGroup(const boost::filesystem::path& path)
             if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
             {
                 list.push_back(*soundinfo);
-            }
-            else
-            {
-                invalid_file_log_open();
-                invalid_file_log << it->generic_string() << endl;
             }
         }
     }
@@ -355,11 +386,6 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
                         list[_info_list_name].push_back(info);
                     }
                 }
-                else
-                {
-                    invalid_file_log_open();
-                    invalid_file_log << it->generic_string() << endl;
-                }
             }
         }
     }
@@ -445,6 +471,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
     DisplayGenerationActivity(true, path.filename().string(), folder_p, folder_t);
+    error_log.reset(); // The above thing is waiting for a "done" or "fail" - if an error happens, it should add a newline.
 
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
 
