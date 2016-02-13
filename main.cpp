@@ -227,10 +227,10 @@ boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
 boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
 {
     { // Check if path is all lowercase.
-        const string str_path = path.relative_path().string();
+        const string str_path = path.generic_string();
         if (any_of(str_path.begin(), str_path.end(), is_upper()))
         {
-            error_log << "[uppercase characters in path] " << str_path << endl;
+            error_log << "[non-lowercase path] " << str_path << endl;
             return boost::none;
         }
     }
