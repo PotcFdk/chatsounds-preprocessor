@@ -110,6 +110,14 @@ bool cmp_si (const SoundInfo& first, const SoundInfo& second)
     return boost::algorithm::ilexicographical_compare(first.first.c_str(), second.first.c_str());
 }
 
+struct is_upper
+{
+    bool operator() (int value)
+    {
+        return ::isupper ((unsigned char) value);
+    }
+};
+
 struct match_char
 {
     char c;
@@ -182,6 +190,14 @@ boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
 
 boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
 {
+    { // Check if path is all lowercase.
+        const string str_path = path.relative_path().string();
+        if (any_of(str_path.begin(), str_path.end(), is_upper()))
+        {
+            cout << "[uppercase characters in path] " << str_path << endl;
+            return boost::none;
+        }
+    }
     if (path.has_extension())
     {
         string ext = path.extension().string();
