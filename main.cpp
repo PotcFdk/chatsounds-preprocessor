@@ -837,7 +837,7 @@ int DiffUpdate()
         cout << endl << "[Information] "
              "Some invalid files were found during the generation." << endl
              << "Please open '" << INVALID_FILE_LOG_PATH << "' and double-check these files." << endl
-             << "They might be corrupt, empty or have an unsupported sample rate." << endl
+             << "They might be corrupt, empty or have an unsupported sample rate or path." << endl
              << "If you have confirmed they work in-game and believe this is an error, visit" << endl
              << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl
              << "Press ENTER to exit..." << endl;
