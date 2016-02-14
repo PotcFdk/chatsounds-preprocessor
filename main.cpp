@@ -175,6 +175,16 @@ void InitBass()
     }
 }
 
+char * parent_dir = NULL;
+bool detectWorkingDir()
+{
+    if (boost::filesystem::is_directory("sound") && boost::filesystem::is_directory("lua"))
+        return false; // The current directory seems to be okay.
+    else if (parent_dir) // Let's try the location of the executable, instead?
+        boost::filesystem::current_path(boost::filesystem::system_complete(parent_dir).remove_filename());
+        return true;
+}
+
 int intDigits (int number)
 {
     int digits = 0;
@@ -970,6 +980,8 @@ void print_versioninfo()
 int Launch_DiffUpdate()
 {
     cout << "Running in DIFF mode." << endl;
+    if (detectWorkingDir())
+        cout << "Switched working directory to executable path." << endl;
 
     try
     {
@@ -990,6 +1002,8 @@ int Launch_DiffUpdate()
 int Launch_FullUpdate()
 {
     cout << "Running in FULL mode." << endl;
+    if (detectWorkingDir())
+        cout << "Switched working directory to executable path." << endl;
 
     try
     {
@@ -1013,6 +1027,8 @@ int Launch_FullUpdate()
 
 int main(int argc, char* argv[])
 {
+    parent_dir = *argv;
+
     if (argc == 1)
     {
         print_topinfo();
