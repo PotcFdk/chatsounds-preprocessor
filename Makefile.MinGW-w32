@@ -1,0 +1,28 @@
+program_NAME := chatsounds-preprocessor
+program_CXX_SRCS := main.cpp
+program_CXX_OBJS := ${program_CXX_SRCS:.cpp=.o} windows-fileinfo.o
+program_INCLUDE_DIRS := includes /usr/i686-w64-mingw32/sys-root/mingw/include
+program_LIBRARY_DIRS := lib /usr/i686-w64-mingw32/sys-root/mingw/lib
+program_LIBRARIES := boost_system boost_filesystem boost_serialization bass
+
+CPPFLAGS += $(foreach includedir,$(program_INCLUDE_DIRS),-I$(includedir))
+LDFLAGS += $(foreach librarydir,$(program_LIBRARY_DIRS),-L$(librarydir))
+LDFLAGS += $(foreach library,$(program_LIBRARIES),-l$(library))
+
+CXXFLAGS = -std=c++11 -s -O2 -Wl,-rpath=.,-rpath=lib -static -static-libgcc -static-libstdc++
+
+.PHONY: all clean distclean
+
+all: $(program_NAME).exe
+
+chatsounds-preprocessor.exe: $(program_CXX_OBJS)
+	$(CXX) -o $(program_NAME).exe $(program_CXX_OBJS) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+
+windows-fileinfo.o:
+	$(WINDRES) -J rc -O coff -i res/windows-fileinfo.rc -o windows-fileinfo.o
+
+clean:
+	@- $(RM) $(program_NAME).exe
+	@- $(RM) $(program_CXX_OBJS)
+
+distclean: clean
