@@ -213,19 +213,34 @@ int intDigits (int number)
     return digits;
 }
 
-void DisplayGenerationActivity(const bool& added, std::string name, const int& folder_p, const int& folder_t)
+void DisplayGenerationActivity(const bool& added, std::string name, const int& folder_p, const int& folder_t, int progress = -1)
 {
     // TERMINAL_WIDTH - "() " - STATUS - #P - #N - '/' - LASTCHR
     unsigned short shortn = TERMINAL_WIDTH - 3 - 4 - intDigits(folder_p) - intDigits(folder_t) - 1 - 2;
 
     cout << '(' << folder_p << '/' << folder_t << ") "
          << (name.size() >= shortn ? "..." + name.substr(name.size() - shortn + 3) : name + string(shortn - name.size(), ' '));
+
+    if (progress != 100 && progress != -1)
+        cout << ' ' << progress << " %";
 }
 
-void UpdateGenerationActivity(const bool& added, std::string& name, const int& folder_p, const int& folder_t)
+bool __gen_activity_added;
+std::string __gen_activity_name;
+int __gen_activity_folder_p, __gen_activity_folder_t;
+
+void UpdateGenerationActivity(int progress = -1)
 {
     cout << '\r';
-    DisplayGenerationActivity(added, name, folder_p, folder_t);
+    DisplayGenerationActivity(__gen_activity_added, __gen_activity_name, __gen_activity_folder_p, __gen_activity_folder_t, progress);
+}
+
+void SetGenerationActivityParameters(const bool& added, std::string name, const int& folder_p, const int& folder_t)
+{
+    __gen_activity_added    = added;
+    __gen_activity_name     = name;
+    __gen_activity_folder_p = folder_p;
+    __gen_activity_folder_t = folder_t;
 }
 
 double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
@@ -370,9 +385,14 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
     PathList paths;
     copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
 
-    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
+    int i = 1, total = paths.size();
+
+    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it, ++i)
     {
         boost::filesystem::path sub_path = GetAbsolutePath(*it);
+
+        if (total > 100 && !(i % 50))
+            UpdateGenerationActivity(100 * i / total);
 
         if (is_directory(sub_path)) // It's a sound group.
         {
@@ -496,11 +516,12 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 
 void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
-    DisplayGenerationActivity(true, path.filename().string(), folder_p, folder_t);
+    SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t);
     error_log.reset(); // The above thing is waiting for a "done" or "fail" - if an error happens, it should add a newline.
 
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
 
+    UpdateGenerationActivity();
     cout << (success ? " done" : " fail") << endl;
 }
 
