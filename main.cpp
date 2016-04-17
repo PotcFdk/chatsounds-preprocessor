@@ -232,7 +232,7 @@ int __gen_activity_folder_p, __gen_activity_folder_t;
 std::chrono::high_resolution_clock::time_point __gen_activity_last = std::chrono::high_resolution_clock::now();
 std::chrono::duration<double> duration;
 
-void UpdateGenerationActivity(int progress = -1, bool force = false)
+inline void UpdateGenerationActivity(int progress = -1, bool force = false)
 {
     duration = std::chrono::high_resolution_clock::now() - __gen_activity_last;
     if (duration.count() > 1 || force)
@@ -252,7 +252,7 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_last    -= std::chrono::duration<int>::max();
 }
 
-double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
+inline double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
 {
     HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
     QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
@@ -262,7 +262,7 @@ double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Ge
     return length;
 }
 
-boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
+inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
 {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
     boost::filesystem::path ret ("\\\\?\\");
