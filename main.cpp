@@ -229,10 +229,18 @@ bool __gen_activity_added;
 std::string __gen_activity_name;
 int __gen_activity_folder_p, __gen_activity_folder_t;
 
-void UpdateGenerationActivity(int progress = -1)
+std::chrono::high_resolution_clock::time_point __gen_activity_last = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double> duration;
+
+void UpdateGenerationActivity(int progress = -1, bool force = false)
 {
-    cout << '\r';
-    DisplayGenerationActivity(__gen_activity_added, __gen_activity_name, __gen_activity_folder_p, __gen_activity_folder_t, progress);
+    duration = std::chrono::high_resolution_clock::now() - __gen_activity_last;
+    if (duration.count() > 1 || force)
+    {
+        cout << '\r';
+        DisplayGenerationActivity(__gen_activity_added, __gen_activity_name, __gen_activity_folder_p, __gen_activity_folder_t, progress);
+        __gen_activity_last = std::chrono::high_resolution_clock::now();
+    }
 }
 
 void SetGenerationActivityParameters(const bool& added, std::string name, const int& folder_p, const int& folder_t)
@@ -241,6 +249,7 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_name     = name;
     __gen_activity_folder_p = folder_p;
     __gen_activity_folder_t = folder_t;
+    __gen_activity_last    -= std::chrono::duration<int>::max();
 }
 
 double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
@@ -391,8 +400,7 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
     {
         boost::filesystem::path sub_path = GetAbsolutePath(*it);
 
-        if (total > 100 && !(i % 50))
-            UpdateGenerationActivity(100 * i / total);
+        UpdateGenerationActivity(100 * i / total);
 
         if (is_directory(sub_path)) // It's a sound group.
         {
@@ -521,7 +529,7 @@ void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p,
 
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
 
-    UpdateGenerationActivity();
+    UpdateGenerationActivity(-1, true);
     cout << (success ? " done" : " fail") << endl;
 }
 
