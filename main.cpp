@@ -957,6 +957,41 @@ void showError(int e)
 
 void print_topinfo()
 {
+    static const string
+        EXT_LINE = "                                                                      | |",
+        END_LINE = "                                                                      |/";
+
+    const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
+        + intDigits(AutoVersion::MAJOR)
+        + intDigits(AutoVersion::MINOR)
+        + intDigits(AutoVersion::BUILD)
+        + (_DISTRIBUTION_VERSION ? intDigits(_DISTRIBUTION_VERSION) + 1 : 0)
+        + string(" by PotcFdk  (Build ").length()
+        + intDigits(AutoVersion::BUILDS_COUNT)
+        + string(AutoVersion::YEAR).length()
+        + string(AutoVersion::MONTH).length()
+        + string(AutoVersion::DATE).length() + 6;
+
+    cout << "        ______            ,                            _   __" << endl
+         << "       / ___  |          /|                           | | /  \\" << endl
+         << "      / /   | |__   __ _| |_ ___  ___  _   _ _ __   __| |/ /\\ \\" << endl
+         << "     / /    | '_ \\ / _` | __/ __|/ _ \\| | | | `_ \\ / _` |\\ \\\\\\ \\" << endl
+         << "    ( (     | | | | (_| | |_\\__ \\ (_) | |_| | | | | (_| | \\ \\\\\\//" << endl
+         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,_|\\ \\ \\" << endl
+         << "      \\ \\____________                                   \\ \\/ //" << endl
+         << "       \\____________ \\'\"`-._,-'\"`-._,-'\"`-._,-'\"`-._,-'\"`\\__//" << endl
+         << "         ____  | |__) ) __ ___ _ __  _ __ ___   ___ ___  ___ ___  ___  _ __" << endl
+         << "        (____) |  ___/ '__/ _ \\ '_ \\| '__/ _ \\ / __/ _ \\/ __/ __|/ _ \\| '__|" << endl
+         << "               | |   | | |  __/ |_) | | | (_) | (_(  __/\\__ \\__ \\ (_) | |" << endl
+         << "         _____/ /    | |  \\___| .__/|_|  \\___/ \\___\\________/___/\\___/| |" << endl
+         << "        (______/     | |      | |                            ^potcfdk | |" << endl
+         << "                      \\|      |_|                                     | |" << endl
+         << (tag_line_length < 70 ? EXT_LINE : END_LINE)
+         << endl;
+
+    if (tag_line_length < 70)
+        cout << EXT_LINE << '\r';
+
     cout << "chatsounds-preprocessor v"
          << AutoVersion::MAJOR << "."
          << AutoVersion::MINOR << "."
@@ -969,10 +1004,20 @@ void print_topinfo()
          << AutoVersion::BUILDS_COUNT << " @ "
          << AutoVersion::YEAR << "/"
          << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE << ")" << endl << endl
+         << AutoVersion::DATE << ")"
+         << endl;
 
-         << "Please report any bugs / issues to:" << endl
-         << BUGTRACKER_LINK << endl << endl;
+    if (tag_line_length < 70)
+        cout << EXT_LINE << endl << EXT_LINE << '\r';
+    else
+        cout << endl;
+
+    cout << "Please report any bugs / issues to:" << endl;
+
+    if (tag_line_length < 70)
+        cout << END_LINE << '\r';
+
+    cout << BUGTRACKER_LINK << endl << endl;
 }
 
 void print_versioninfo()
