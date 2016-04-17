@@ -694,6 +694,11 @@ SoundCache GenerateSoundCache()
 {
     SoundCache soundcache;
 
+    int cnt = 1, cnt_total = std::count_if (boost::filesystem::directory_iterator(SOUNDPATH),
+        boost::filesystem::directory_iterator(),
+        bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
+            bind (&boost::filesystem::directory_entry::path, _1)));
+
     for (boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
     {
         if (is_directory(it->status()))
@@ -717,8 +722,11 @@ SoundCache GenerateSoundCache()
                         = boost::filesystem::last_write_time(GetAbsolutePath(its->path()));
                 }
             }
+            cout << '\r' << "Scanning sounds... " << cnt++ << '/' << cnt_total << flush;
         }
     }
+
+    cout << " OK";
 
     return soundcache;
 }
