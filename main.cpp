@@ -186,9 +186,17 @@ bool detectWorkingDir()
         return true;
 }
 
-int getNumberOfDirectories (boost::filesystem::path SOUNDPATH)
+int getNumberOfDirectories (boost::filesystem::path path)
 {
-    return std::count_if (boost::filesystem::directory_iterator(SOUNDPATH),
+    return std::count_if (boost::filesystem::directory_iterator(path),
+        boost::filesystem::directory_iterator(),
+        bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
+            bind (&boost::filesystem::directory_entry::path, _1)));
+}
+
+int getNumberOfFiles (boost::filesystem::path path)
+{
+    return std::count_if (boost::filesystem::directory_iterator(path),
         boost::filesystem::directory_iterator(),
         bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
             bind (&boost::filesystem::directory_entry::path, _1)));
