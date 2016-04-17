@@ -198,18 +198,12 @@ int intDigits (int number)
 
 void DisplayGenerationActivity(const bool& added, std::string name, const int& folder_p, const int& folder_t)
 {
-    if (added)
-        cout << "Genera";
-    else
-        cout << "Dele";
+    cout << '(' << folder_p << '/' << folder_t << ") ";
 
-    cout << "ting list (" << folder_p << '/' << folder_t << "): ";
+    // TERMINAL_WIDTH - "() " - STATUS - #P - #N - '/' - LASTCHR
+    unsigned short shortn = TERMINAL_WIDTH - 3 - 4 - intDigits(folder_p) - intDigits(folder_t) - 1 - 2;
 
-    // TERMINAL_WIDTH - "(...)ing list (): " - STATUS - #P - #N - '/' - (? "Assembl" - "Delet" (= 2)) - LASTCHR
-    unsigned short shortn = TERMINAL_WIDTH - 18 - 5 - intDigits(folder_p) - intDigits(folder_t) - 1 - (added ? 2 : 0) - 1;
-
-    name = name.size() >= shortn ? "..." + name.substr(name.size() - shortn + 3) : name + string(shortn - name.size(), ' ');
-    cout << name;
+    cout << (name.size() >= shortn ? "..." + name.substr(name.size() - shortn + 3) : name + string(shortn - name.size(), ' '));
 }
 
 double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
