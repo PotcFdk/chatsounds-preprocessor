@@ -185,6 +185,14 @@ bool detectWorkingDir()
         return true;
 }
 
+int getNumberOfDirectories (boost::filesystem::path SOUNDPATH)
+{
+    return std::count_if (boost::filesystem::directory_iterator(SOUNDPATH),
+        boost::filesystem::directory_iterator(),
+        bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
+            bind (&boost::filesystem::directory_entry::path, _1)));
+}
+
 int intDigits (int number)
 {
     int digits = 0;
@@ -484,11 +492,7 @@ void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p,
 
 void ProcessSoundFolders(const boost::filesystem::path& path)
 {
-    const int d_count = std::count_if(
-                            boost::filesystem::directory_iterator(path),
-                            boost::filesystem::directory_iterator(),
-                            boost::bind( static_cast<bool(*)(const boost::filesystem::path & path)>(boost::filesystem::is_directory), boost::bind( &boost::filesystem::directory_entry::path, _1 ) ));
-
+    const int d_count = getNumberOfDirectories(path);
     int d_i = 1;
 
     for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
@@ -688,10 +692,7 @@ SoundCache GenerateSoundCache()
 {
     SoundCache soundcache;
 
-    int cnt = 1, cnt_total = std::count_if (boost::filesystem::directory_iterator(SOUNDPATH),
-        boost::filesystem::directory_iterator(),
-        bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
-            bind (&boost::filesystem::directory_entry::path, _1)));
+    int cnt = 1, cnt_total = getNumberOfDirectories(SOUNDPATH);
 
     for (boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
     {
