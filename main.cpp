@@ -229,17 +229,21 @@ bool __gen_activity_added;
 std::string __gen_activity_name;
 int __gen_activity_folder_p, __gen_activity_folder_t;
 
+std::chrono::high_resolution_clock::time_point __gen_activity_rst  = std::chrono::high_resolution_clock::now();
 std::chrono::high_resolution_clock::time_point __gen_activity_last = std::chrono::high_resolution_clock::now();
 std::chrono::duration<double> duration;
 
 inline void UpdateGenerationActivity(int progress = -1, bool force = false)
 {
-    duration = std::chrono::high_resolution_clock::now() - __gen_activity_last;
-    if (duration.count() > 1 || force)
+    static std::chrono::high_resolution_clock::time_point now;
+    now = std::chrono::high_resolution_clock::now();
+
+    duration = now - __gen_activity_last;
+    if (duration.count() > 0.5 || force)
     {
         cout << '\r';
         DisplayGenerationActivity(__gen_activity_added, __gen_activity_name, __gen_activity_folder_p, __gen_activity_folder_t, progress);
-        __gen_activity_last = std::chrono::high_resolution_clock::now();
+        __gen_activity_last = now;
     }
 }
 
@@ -249,7 +253,7 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_name     = name;
     __gen_activity_folder_p = folder_p;
     __gen_activity_folder_t = folder_t;
-    __gen_activity_last    -= std::chrono::duration<int>::max();
+    __gen_activity_last     = __gen_activity_rst;
 }
 
 inline double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
