@@ -22,6 +22,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <chrono>
 
 #include "version.h"
 
@@ -772,6 +773,8 @@ void CleanupFolder(boost::filesystem::path path)
 
 int DiffUpdate()
 {
+    std::chrono::high_resolution_clock::time_point time_begin = std::chrono::high_resolution_clock::now();
+
     InitBass();
 
     cout << "Resetting invalid soundfile log..." << endl;
@@ -841,7 +844,9 @@ int DiffUpdate()
     UpdateSoundSets(to_be_updated);
     WriteSoundCache(new_soundcache);
 
-    cout << "List generation has finished." << endl;
+    std::chrono::duration<double> duration (std::chrono::high_resolution_clock::now() - time_begin);
+
+    cout << "List generation has finished. Took " << duration.count() << " seconds." << endl;
 
     invalid_file_log_close();
 
