@@ -555,9 +555,9 @@ void ProcessSoundFolders(const boost::filesystem::path& path)
     const int d_count = getNumberOfDirectories(path);
     int d_i = 1;
 
-    for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+    for (boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
     {
-        if ( is_directory(it->status()) )
+        if (is_directory(it->status()))
         {
             UpdateSoundFolder(it->path(), d_i, d_count);
             d_i++;
@@ -567,7 +567,7 @@ void ProcessSoundFolders(const boost::filesystem::path& path)
 
 void ClearFolder(const boost::filesystem::path& path)
 {
-    for(boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+    for (boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
     {
         boost::filesystem::remove_all(*it);
     }
