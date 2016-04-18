@@ -13,6 +13,7 @@
 #define S_LISTPATH "lua/chatsounds/lists_nosend"
 #define S_SOUNDPATH "sound/chatsounds/autoadd"
 #define S_SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
+#define S_SOUNDPATH_MAXLEN 150 // Arbitrary limit enforced by Garry's Mod
 
 #define S_BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
 
@@ -59,6 +60,7 @@ const char * const INVALID_FILE_LOG_PATH = S_INVALID_FILE_LOG_PATH;
 const char * const LISTPATH  = S_LISTPATH;
 const char * const SOUNDPATH = S_SOUNDPATH;
 const uint_fast8_t SOUNDPATH_IGNORELEN = S_SOUNDPATH_IGNORELEN;
+const uint_fast8_t SOUNDPATH_MAXLEN = S_SOUNDPATH_MAXLEN;
 
 const char * const BUGTRACKER_LINK = S_BUGTRACKER_LINK;
 
@@ -280,14 +282,26 @@ inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& pa
 
 boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
 {
-    { // Check if path is all lowercase.
+    {
         const string str_path = path.generic_string();
-        if (any_of(str_path.begin(), str_path.end(), is_upper()))
+
+        // Check path length
+
+        if (str_path.length() > SOUNDPATH_MAXLEN)
+        {
+            error_log << "[too long path] " << str_path << endl;
+            return boost::none;
+        }
+
+        // Check if path is all lowercase.
+
+        else if (any_of(str_path.begin(), str_path.end(), is_upper()))
         {
             error_log << "[non-lowercase path] " << str_path << endl;
             return boost::none;
         }
     }
+
     if (path.has_extension())
     {
         string ext = path.extension().string();
