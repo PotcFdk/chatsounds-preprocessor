@@ -225,6 +225,8 @@ void DisplayGenerationActivity(const bool& added, std::string name, const int& f
 
     if (progress != 100 && progress != -1)
         cout << ' ' << progress << " %";
+
+    error_log.reset();
 }
 
 bool __gen_activity_added;
@@ -543,10 +545,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
     SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t);
-    error_log.reset(); // The above thing is waiting for a "done" or "fail" - if an error happens, it should add a newline.
-
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
-
     UpdateGenerationActivity(-1, true);
     cout << (success ? " done" : " fail") << endl;
 }
