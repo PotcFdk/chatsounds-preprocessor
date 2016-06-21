@@ -1161,7 +1161,7 @@ int main(int argc, char* argv[])
                 return Launch_FullUpdate();
             else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
                 return Launch_DiffUpdate();
-            else if (clp == "-h" || clp == "--help")
+            else if (clp == "-h" || clp == "/?" || clp == "--help")
             {
                 cout << "Usage: " << endl
                      << " -f | --full     -  Full, uncached list generation" << endl
