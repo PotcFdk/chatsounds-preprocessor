@@ -80,12 +80,41 @@ typedef unordered_map<string, bool> MissingSoundCacheFiles;
 ///
 
 #define DVER(X) #X
+#define _DVER(X) DVER(X)
 
 #ifdef DISTRIBUTION_VERSION
-const char * _DISTRIBUTION_VERSION = DISTRIBUTION_VERSION;
+const char * _DISTRIBUTION_VERSION = _DVER(DISTRIBUTION_VERSION);
 #else
 const bool _DISTRIBUTION_VERSION = false;
 #endif // DISTRIBUTION_VERSION
+
+unsigned short month, day, year;
+
+const char *months[] = {
+    "Jan", "Feb", "Mar", "Apr", "May",
+    "Jun", "Jul", "Aug","Sep", "Oct", "Nov", "Dec"
+};
+
+void getdate ()
+{
+    char temp [] = __DATE__;
+    unsigned char i;
+
+    year = atoi(temp + 7);
+    *(temp + 6) = 0;
+    day = atoi(temp + 4);
+    *(temp + 3) = 0;
+    for (i = 0; i < 12; i++)
+    {
+        if (!strcmp(temp, months[i]))
+        {
+            month = i + 1;
+            return;
+        }
+    }
+}
+
+///
 
 const std::vector<unsigned int> valid_samplerates_ogg =
 {
@@ -998,20 +1027,24 @@ void showError(int e)
 
 void print_topinfo()
 {
+    getdate();
+
     static const string
         EXT_LINE = "                                                                      | |",
         END_LINE = "                                                                      |/";
 
     const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
-        + intDigits(AutoVersion::MAJOR)
-        + intDigits(AutoVersion::MINOR)
-        + intDigits(AutoVersion::BUILD)
-        + (_DISTRIBUTION_VERSION ? intDigits(_DISTRIBUTION_VERSION) + 1 : 0)
+        + intDigits(Version::MAJOR)
+        + intDigits(Version::MINOR)
+        + intDigits(Version::BUILD)
+#ifdef DISTRIBUTION_VERSION
+        + (string(_DISTRIBUTION_VERSION).length() + 1)
+#endif
         + string(" by PotcFdk  (Build ").length()
-        + intDigits(AutoVersion::BUILDS_COUNT)
-        + string(AutoVersion::YEAR).length()
-        + string(AutoVersion::MONTH).length()
-        + string(AutoVersion::DATE).length() + 6;
+        + intDigits(Version::BUILDS_COUNT)
+        + 4 // year
+        + 2 // month
+        + 2 /* day */ + 6;
 
     cout << "        ______            ,                            _   __" << endl
          << "       / ___  |          /|                           | | /  \\\\" << endl
@@ -1034,18 +1067,20 @@ void print_topinfo()
         cout << EXT_LINE << '\r';
 
     cout << "chatsounds-preprocessor v"
-         << AutoVersion::MAJOR << "."
-         << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD;
+         << Version::MAJOR << "."
+         << Version::MINOR << "."
+         << Version::BUILD;
 
     if (_DISTRIBUTION_VERSION)
         cout << "-" << _DISTRIBUTION_VERSION;
 
-    cout << " by PotcFdk  (Build "
-         << AutoVersion::BUILDS_COUNT << " @ "
-         << AutoVersion::YEAR << "/"
-         << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE << ")"
+    cout << " by PotcFdk (Build "
+         << Version::BUILDS_COUNT << " @ "
+         << year << "/";
+    if (month < 10) cout << 0;
+    cout << month << "/";
+    if (day < 10) cout << 0;
+    cout << day << ")"
          << endl;
 
     if (tag_line_length < 70)
@@ -1063,22 +1098,25 @@ void print_topinfo()
 
 void print_versioninfo()
 {
+    getdate();
+
     cout << "chatsounds-preprocessor"
          << endl << "Version    : "
-         << AutoVersion::MAJOR << "."
-         << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD;
+         << Version::MAJOR << "."
+         << Version::MINOR << "."
+         << Version::BUILD;
 
     if (_DISTRIBUTION_VERSION)
         cout << "-" << _DISTRIBUTION_VERSION;
 
     cout << endl << "Build      : "
-         << AutoVersion::BUILDS_COUNT
+         << Version::BUILDS_COUNT
          << endl << "Build date : "
-         << AutoVersion::YEAR << "/"
-         << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE
-         << endl
+         << year << "/";
+    if (month < 10) cout << 0;
+    cout << month << "/";
+    if (day < 10) cout << 0;
+    cout << day << endl
 
 #if defined(__clang__)
          << "Compiler   : Clang/LLVM, version "
