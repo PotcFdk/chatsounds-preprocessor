@@ -43,8 +43,10 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-// libbass
-#include <bass.h>
+// libavformat
+extern "C" {
+#include <libavformat/avformat.h>
+}
 
 using namespace std;
 
@@ -167,14 +169,14 @@ struct match_char
     }
 };
 
-bool bass_init = false;
-void InitBass()
+bool avformat_init = false;
+void InitLibAV()
 {
-    if (!bass_init)
+    if (!avformat_init)
     {
-        cout << "Initializing BASS Library..." << endl;
-        BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
-        bass_init = true;
+        cout << "Initializing libavformat..." << endl;
+        av_register_all();
+        avformat_init = true;
     }
 }
 
@@ -260,14 +262,40 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_last     = __gen_activity_rst;
 }
 
-inline double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
+class CPP_AVFormatContext {
+    AVFormatContext *ptr;
+    public: CPP_AVFormatContext() {
+        ptr = avformat_alloc_context();
+        if (ptr == NULL) {
+            throw 51;
+        }
+    }
+    bool operator !() const { return ptr == NULL; }
+    AVFormatContext* get() { return ptr; };
+    AVFormatContext** get_ptr() { return &ptr; };
+    CPP_AVFormatContext(CPP_AVFormatContext&&) = default;
+    CPP_AVFormatContext& operator=(CPP_AVFormatContext&&) = default;
+    CPP_AVFormatContext(const CPP_AVFormatContext&) = delete;
+    CPP_AVFormatContext& operator=(const CPP_AVFormatContext&) = delete;
+    ~CPP_AVFormatContext() {
+        if (ptr)
+            avformat_close_input (&ptr);
+    }
+};
+
+inline double GetSoundDuration(const boost::filesystem::path& path, float *rate) // Gets the duration of a sound.
 {
-    HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
-    QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
-    double length = BASS_ChannelBytes2Seconds(sound, bytecount);
-    BASS_ChannelGetAttribute(sound, BASS_ATTRIB_FREQ, freq);
-    BASS_StreamFree(sound);
-    return length;
+    CPP_AVFormatContext ps;
+    AVFormatContext *_ps = ps.get();
+    avformat_open_input (ps.get_ptr(), path.c_str(), NULL, NULL);
+    if (!ps) return 0;
+
+    avformat_find_stream_info (_ps, NULL);
+    int64_t duration = _ps->duration;
+    if (duration <= 0) return 0;
+    if (_ps->nb_streams != 1) return 0;
+    *rate = _ps->streams[0]->codec->sample_rate;
+    return static_cast<double>(duration)/AV_TIME_BASE;
 }
 
 inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
@@ -314,11 +342,11 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             string s_path = path.generic_string();
             boost::filesystem::path full_path = GetAbsolutePath(path);
 
-            float freq = 0;
-            double duration = GetSoundDuration(full_path, &freq);
+            float rate = 0;
+            double duration = GetSoundDuration(full_path, &rate);
             if (
                 ext != ".ogg"
-                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
+                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), rate)
                     != valid_samplerates_ogg.end())
             )
             {
@@ -327,7 +355,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             }
             else
             {
-                error_log << "[invalid sample rate] " << s_path << ": " << freq << endl;
+                error_log << "[invalid sample rate] " << s_path << ": " << rate << endl;
             }
         }
     }
@@ -834,7 +862,7 @@ int DiffUpdate()
 {
     std::chrono::high_resolution_clock::time_point time_begin = std::chrono::high_resolution_clock::now();
 
-    InitBass();
+    InitLibAV();
 
     cout << "Resetting invalid soundfile log..." << endl;
 
@@ -887,7 +915,7 @@ int DiffUpdate()
     try
     {
         new_soundcache = GenerateSoundCache();
-        cout << endl << "Calculating difference...";
+        cout << endl << "Calculating difference..." << flush;
         to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
         AddMissingLists(to_be_updated, new_soundcache);
     }
