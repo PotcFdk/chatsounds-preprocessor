@@ -1,7 +1,7 @@
 program_NAME := chatsounds-preprocessor
 program_CXX_SRCS := main.cpp
 program_CXX_OBJS := ${program_CXX_SRCS:.cpp=.o}
-program_INCLUDE_DIRS := includes
+program_INCLUDE_DIRS := includes /usr/include/ffmpeg
 program_LIBRARY_DIRS := lib
 program_LIBRARIES := boost_system boost_filesystem boost_serialization avformat
 
