@@ -79,15 +79,6 @@ typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
 ///
 
-#define DVER(X) #X
-#define _DVER(X) DVER(X)
-
-#ifdef DISTRIBUTION_VERSION
-const char * _DISTRIBUTION_VERSION = _DVER(DISTRIBUTION_VERSION);
-#else
-const bool _DISTRIBUTION_VERSION = false;
-#endif // DISTRIBUTION_VERSION
-
 unsigned short month, day, year;
 
 const char *months[] = {
@@ -1036,22 +1027,18 @@ void print_topinfo()
     const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
         + intDigits(Version::MAJOR)
         + intDigits(Version::MINOR)
-        + intDigits(Version::BUILD)
-#ifdef DISTRIBUTION_VERSION
-        + (string(_DISTRIBUTION_VERSION).length() + 1)
+        + intDigits(Version::PATCH)
+#if HAS_VERSION_DISTRIBUTION
+        + strlen(Version::DISTRIBUTION) + 1
 #endif
-        + string(" by PotcFdk  (Build ").length()
-        + intDigits(Version::BUILDS_COUNT)
-        + 4 // year
-        + 2 // month
-        + 2 /* day */ + 6;
+        + string(" by PotcFdk").length() - 1; // -1 for partly overwriting, looks cool
 
     cout << "        ______            ,                            _   __" << endl
          << "       / ___  |          /|                           | | /  \\\\" << endl
          << "      / /   | |__   __ _| |_ ___  ___  _   _ _ __   __| |/ /\\ \\\\" << endl
          << "     / /    | '_ \\ / _` | __/ __|/ _ \\| | | | `_ \\ / _` |\\ \\\\\\ \\\\" << endl
          << "    ( (     | | | | (_| | |_\\__ \\ (_) | |_| | | | | (_| | \\ \\\\\\//" << endl
-         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,_|\\ \\ \\\\" << endl
+         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,/ \\ \\ \\\\" << endl
          << "      \\ \\____________                                   \\ \\/ //" << endl
          << "       \\____________ \\'\"`-._,-'\"`-._,-'\"`-._,-'\"`-._,-'\"`\\__//" << endl
          << "         ____  | |__) ) __ ___ _ __  _ __ ___   ___ ___  ___ ___  ___  _ __" << endl
@@ -1069,19 +1056,11 @@ void print_topinfo()
     cout << "chatsounds-preprocessor v"
          << Version::MAJOR << "."
          << Version::MINOR << "."
-         << Version::BUILD;
-
-    if (_DISTRIBUTION_VERSION)
-        cout << "-" << _DISTRIBUTION_VERSION;
-
-    cout << " by PotcFdk (Build "
-         << Version::BUILDS_COUNT << " @ "
-         << year << "/";
-    if (month < 10) cout << 0;
-    cout << month << "/";
-    if (day < 10) cout << 0;
-    cout << day << ")"
-         << endl;
+         << Version::PATCH
+#if HAS_VERSION_DISTRIBUTION
+         << Version::DISTRIBUTION
+#endif
+         << " by PotcFdk" << endl;
 
     if (tag_line_length < 70)
         cout << EXT_LINE << endl << EXT_LINE << '\r';
@@ -1104,20 +1083,16 @@ void print_versioninfo()
          << endl << "Version    : "
          << Version::MAJOR << "."
          << Version::MINOR << "."
-         << Version::BUILD;
-
-    if (_DISTRIBUTION_VERSION)
-        cout << "-" << _DISTRIBUTION_VERSION;
-
-    cout << endl << "Build      : "
-         << Version::BUILDS_COUNT
+         << Version::PATCH
+#if HAS_VERSION_DISTRIBUTION
+         << Version::DISTRIBUTION
+#endif
          << endl << "Build date : "
-         << year << "/";
+         << year << "-";
     if (month < 10) cout << 0;
-    cout << month << "/";
+    cout << month << "-";
     if (day < 10) cout << 0;
     cout << day << endl
-
 #if defined(__clang__)
          << "Compiler   : Clang/LLVM, version "
 #if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
