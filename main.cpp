@@ -316,7 +316,7 @@ inline double GetSoundDuration(const boost::filesystem::path& path, float *rate)
 {
     CPP_AVFormatContext ps;
     AVFormatContext *_ps = ps.get();
-    avformat_open_input (ps.get_ptr(), path.c_str(), NULL, NULL);
+    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
     if (!ps) return 0;
 
     avformat_find_stream_info (_ps, NULL);
