@@ -1,8 +1,8 @@
-CHATSOUNDS_PREPROCESSOR_ICON ICON "windows-exe-icon.ico"
+CHATSOUNDS_PREPROCESSOR_ICON ICON "${PROJECT_SOURCE_DIR}/res/windows-exe-icon.ico"
 
 1 VERSIONINFO
-FILEVERSION     1,0,0,0
-PRODUCTVERSION  1,0,0,0
+FILEVERSION     @CP_VERSION_MAJOR@,@CP_VERSION_MINOR@,@CP_VERSION_PATCH@,0
+PRODUCTVERSION  @CP_VERSION_MAJOR@,@CP_VERSION_MINOR@,@CP_VERSION_PATCH@,0
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
@@ -10,12 +10,12 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "PotcFdk / Meta Construct"
       VALUE "FileDescription", "Chatsounds Preprocessor"
-      VALUE "FileVersion", "1.0.0-alpha"
+      VALUE "FileVersion", "@CP_VERSION_MAJOR@.@CP_VERSION_MINOR@.@CP_VERSION_PATCH@@CP_VERSION_DISTRIBUTION@"
       VALUE "InternalName", "chatsounds-preprocessor"
       VALUE "LegalCopyright", "PotcFdk"
       VALUE "OriginalFilename", "chatsounds-preprocessor.exe"
       VALUE "ProductName", "Chatsounds Preprocessor"
-      VALUE "ProductVersion", "1.0.0-alpha"
+      VALUE "ProductVersion", "@CP_VERSION_MAJOR@.@CP_VERSION_MINOR@.@CP_VERSION_PATCH@@CP_VERSION_DISTRIBUTION@"
     END
   END
 

@@ -92,6 +92,11 @@ configure_file (
 	"${PROJECT_BINARY_DIR}/version.h"
 )
 
+configure_file (
+	"${PROJECT_SOURCE_DIR}/res/windows-fileinfo.rc.in"
+	"${PROJECT_BINARY_DIR}/windows-fileinfo.rc"
+)
+
 include_directories("${PROJECT_BINARY_DIR}")
 
 find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization)
@@ -103,6 +108,6 @@ if (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
 	include_directories (${FFMPEG_INCLUDE_DIR_AVFORMAT})
 endif()
 
-add_executable(chatsounds-preprocessor main.cpp)
+add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
 
 target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY})
