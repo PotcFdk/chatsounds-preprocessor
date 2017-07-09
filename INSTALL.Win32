@@ -25,3 +25,6 @@ Eventually you should end up with a `libs/ffmpeg` folder containing `lib` and `i
 
 In the future, it hopefully won't be required to explicitly mention ffmpeg during the CMake call anymore.
 
+## Compile
+
+Run `make`.
