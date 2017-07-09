@@ -1227,7 +1227,7 @@ int main(int argc, char* argv[])
 
             if (clp == "-f" || clp == "--full")
                 return Launch_FullUpdate(open_ext);
-            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
+            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "--diff")
                 return Launch_DiffUpdate(open_ext);
             else if (clp == "-h" || clp == "/?" || clp == "--help")
             {
