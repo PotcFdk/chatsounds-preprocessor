@@ -5,15 +5,18 @@ chatsounds-preprocessor.depend
 # External Libraries / Header Files
 include/*
 lib/*
+libs/*
 
 # Build Folders
 obj
 bin
+build
 
 # Test Folder
 run
 
 # Compiled Binaries
+chatsounds-preprocessor
 *.exe
 
 # Compiled Object files

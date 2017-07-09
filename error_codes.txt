@@ -8,6 +8,8 @@
 32: Modified sound file path scan 2 iteration count exceeded 300.
 33: Missing sound list scan iteration count exceeded 300.
 
+51: libavformat: allocation error
+
 60: Filesystem error.
 
 99: Undefined fatal error.

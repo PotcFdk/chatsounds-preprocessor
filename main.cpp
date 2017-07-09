@@ -43,8 +43,10 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-// libbass
-#include <bass.h>
+// libavformat
+extern "C" {
+#include <libavformat/avformat.h>
+}
 
 using namespace std;
 
@@ -77,13 +79,33 @@ typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
 ///
 
-#define DVER(X) #X
+unsigned short month, day, year;
 
-#ifdef DISTRIBUTION_VERSION
-const char * _DISTRIBUTION_VERSION = DISTRIBUTION_VERSION;
-#else
-const bool _DISTRIBUTION_VERSION = false;
-#endif // DISTRIBUTION_VERSION
+const char *months[] = {
+    "Jan", "Feb", "Mar", "Apr", "May",
+    "Jun", "Jul", "Aug","Sep", "Oct", "Nov", "Dec"
+};
+
+void getdate ()
+{
+    char temp [] = __DATE__;
+    unsigned char i;
+
+    year = atoi(temp + 7);
+    *(temp + 6) = 0;
+    day = atoi(temp + 4);
+    *(temp + 3) = 0;
+    for (i = 0; i < 12; i++)
+    {
+        if (!strcmp(temp, months[i]))
+        {
+            month = i + 1;
+            return;
+        }
+    }
+}
+
+///
 
 const std::vector<unsigned int> valid_samplerates_ogg =
 {
@@ -167,14 +189,14 @@ struct match_char
     }
 };
 
-bool bass_init = false;
-void InitBass()
+bool avformat_init = false;
+void InitLibAV()
 {
-    if (!bass_init)
+    if (!avformat_init)
     {
-        cout << "Initializing BASS Library..." << endl;
-        BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
-        bass_init = true;
+        cout << "Initializing libavformat..." << endl;
+        av_register_all();
+        avformat_init = true;
     }
 }
 
@@ -260,14 +282,40 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_last     = __gen_activity_rst;
 }
 
-inline double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
+class CPP_AVFormatContext {
+    AVFormatContext *ptr;
+    public: CPP_AVFormatContext() {
+        ptr = avformat_alloc_context();
+        if (ptr == NULL) {
+            throw 51;
+        }
+    }
+    bool operator !() const { return ptr == NULL; }
+    AVFormatContext* get() { return ptr; };
+    AVFormatContext** get_ptr() { return &ptr; };
+    CPP_AVFormatContext(CPP_AVFormatContext&&) = default;
+    CPP_AVFormatContext& operator=(CPP_AVFormatContext&&) = default;
+    CPP_AVFormatContext(const CPP_AVFormatContext&) = delete;
+    CPP_AVFormatContext& operator=(const CPP_AVFormatContext&) = delete;
+    ~CPP_AVFormatContext() {
+        if (ptr)
+            avformat_close_input (&ptr);
+    }
+};
+
+inline double GetSoundDuration(const boost::filesystem::path& path, float *rate) // Gets the duration of a sound.
 {
-    HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
-    QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
-    double length = BASS_ChannelBytes2Seconds(sound, bytecount);
-    BASS_ChannelGetAttribute(sound, BASS_ATTRIB_FREQ, freq);
-    BASS_StreamFree(sound);
-    return length;
+    CPP_AVFormatContext ps;
+    AVFormatContext *_ps = ps.get();
+    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
+    if (!ps) return 0;
+
+    avformat_find_stream_info (_ps, NULL);
+    int64_t duration = _ps->duration;
+    if (duration <= 0) return 0;
+    if (_ps->nb_streams != 1) return 0;
+    *rate = _ps->streams[0]->codec->sample_rate;
+    return static_cast<double>(duration)/AV_TIME_BASE;
 }
 
 inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
@@ -314,11 +362,11 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             string s_path = path.generic_string();
             boost::filesystem::path full_path = GetAbsolutePath(path);
 
-            float freq = 0;
-            double duration = GetSoundDuration(full_path, &freq);
+            float rate = 0;
+            double duration = GetSoundDuration(full_path, &rate);
             if (
                 ext != ".ogg"
-                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
+                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), rate)
                     != valid_samplerates_ogg.end())
             )
             {
@@ -327,7 +375,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             }
             else
             {
-                error_log << "[invalid sample rate] " << s_path << ": " << freq << endl;
+                error_log << "[invalid sample rate] " << s_path << ": " << rate << endl;
             }
         }
     }
@@ -834,7 +882,7 @@ int DiffUpdate()
 {
     std::chrono::high_resolution_clock::time_point time_begin = std::chrono::high_resolution_clock::now();
 
-    InitBass();
+    InitLibAV();
 
     cout << "Resetting invalid soundfile log..." << endl;
 
@@ -887,7 +935,7 @@ int DiffUpdate()
     try
     {
         new_soundcache = GenerateSoundCache();
-        cout << endl << "Calculating difference...";
+        cout << endl << "Calculating difference..." << flush;
         to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
         AddMissingLists(to_be_updated, new_soundcache);
     }
@@ -970,27 +1018,27 @@ void showError(int e)
 
 void print_topinfo()
 {
+    getdate();
+
     static const string
         EXT_LINE = "                                                                      | |",
         END_LINE = "                                                                      |/";
 
     const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
-        + intDigits(AutoVersion::MAJOR)
-        + intDigits(AutoVersion::MINOR)
-        + intDigits(AutoVersion::BUILD)
-        + (_DISTRIBUTION_VERSION ? intDigits(_DISTRIBUTION_VERSION) + 1 : 0)
-        + string(" by PotcFdk  (Build ").length()
-        + intDigits(AutoVersion::BUILDS_COUNT)
-        + string(AutoVersion::YEAR).length()
-        + string(AutoVersion::MONTH).length()
-        + string(AutoVersion::DATE).length() + 6;
+        + intDigits(Version::MAJOR)
+        + intDigits(Version::MINOR)
+        + intDigits(Version::PATCH)
+#if HAS_VERSION_DISTRIBUTION
+        + strlen(Version::DISTRIBUTION) + 1
+#endif
+        + string(" by PotcFdk").length() - 1; // -1 for partly overwriting, looks cool
 
     cout << "        ______            ,                            _   __" << endl
          << "       / ___  |          /|                           | | /  \\\\" << endl
          << "      / /   | |__   __ _| |_ ___  ___  _   _ _ __   __| |/ /\\ \\\\" << endl
          << "     / /    | '_ \\ / _` | __/ __|/ _ \\| | | | `_ \\ / _` |\\ \\\\\\ \\\\" << endl
          << "    ( (     | | | | (_| | |_\\__ \\ (_) | |_| | | | | (_| | \\ \\\\\\//" << endl
-         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,_|\\ \\ \\\\" << endl
+         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,/ \\ \\ \\\\" << endl
          << "      \\ \\____________                                   \\ \\/ //" << endl
          << "       \\____________ \\'\"`-._,-'\"`-._,-'\"`-._,-'\"`-._,-'\"`\\__//" << endl
          << "         ____  | |__) ) __ ___ _ __  _ __ ___   ___ ___  ___ ___  ___  _ __" << endl
@@ -1006,19 +1054,13 @@ void print_topinfo()
         cout << EXT_LINE << '\r';
 
     cout << "chatsounds-preprocessor v"
-         << AutoVersion::MAJOR << "."
-         << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD;
-
-    if (_DISTRIBUTION_VERSION)
-        cout << "-" << _DISTRIBUTION_VERSION;
-
-    cout << " by PotcFdk  (Build "
-         << AutoVersion::BUILDS_COUNT << " @ "
-         << AutoVersion::YEAR << "/"
-         << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE << ")"
-         << endl;
+         << Version::MAJOR << "."
+         << Version::MINOR << "."
+         << Version::PATCH
+#if HAS_VERSION_DISTRIBUTION
+         << Version::DISTRIBUTION
+#endif
+         << " by PotcFdk" << endl;
 
     if (tag_line_length < 70)
         cout << EXT_LINE << endl << EXT_LINE << '\r';
@@ -1035,23 +1077,22 @@ void print_topinfo()
 
 void print_versioninfo()
 {
+    getdate();
+
     cout << "chatsounds-preprocessor"
          << endl << "Version    : "
-         << AutoVersion::MAJOR << "."
-         << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD;
-
-    if (_DISTRIBUTION_VERSION)
-        cout << "-" << _DISTRIBUTION_VERSION;
-
-    cout << endl << "Build      : "
-         << AutoVersion::BUILDS_COUNT
+         << Version::MAJOR << "."
+         << Version::MINOR << "."
+         << Version::PATCH
+#if HAS_VERSION_DISTRIBUTION
+         << Version::DISTRIBUTION
+#endif
          << endl << "Build date : "
-         << AutoVersion::YEAR << "/"
-         << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE
-         << endl
-
+         << year << "-";
+    if (month < 10) cout << 0;
+    cout << month << "-";
+    if (day < 10) cout << 0;
+    cout << day << endl
 #if defined(__clang__)
          << "Compiler   : Clang/LLVM, version "
 #if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)

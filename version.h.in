@@ -1,0 +1,23 @@
+#ifndef VERSION_H
+#define VERSION_H
+
+#if @CP_VERSION_OFFICIAL@ == true
+#define DISTRIBUTION_OFFICIAL
+#endif
+
+#define HAS_VERSION_DISTRIBUTION @CP_HAS_VERSION_DISTRIBUTION@
+
+namespace Version{
+
+	static const long MAJOR  = @CP_VERSION_MAJOR@;
+	static const long MINOR  = @CP_VERSION_MINOR@;
+	static const long PATCH  = @CP_VERSION_PATCH@;
+
+#if HAS_VERSION_DISTRIBUTION
+	static const char * DISTRIBUTION = "@CP_VERSION_DISTRIBUTION@";
+#endif
+
+}
+
+#endif //VERSION_H
+
