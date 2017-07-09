@@ -324,7 +324,7 @@ inline double GetSoundDuration(const boost::filesystem::path& path, float *rate)
     int64_t duration = _ps->duration;
     if (duration <= 0) return 0;
     if (_ps->nb_streams != 1) return 0;
-    *rate = _ps->streams[0]->codec->sample_rate;
+    *rate = _ps->streams[0]->codecpar->sample_rate;
     return static_cast<double>(duration)/AV_TIME_BASE;
 }
 
