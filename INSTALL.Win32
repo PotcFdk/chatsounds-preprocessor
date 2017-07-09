@@ -1,5 +1,17 @@
 # MinGW-w64
 
+## MSYS
+
+This short command reference assumes you're using MSYS2 (www.msys2.org).
+
+Upon installation, update the installation as per the guide with multiple
+`$ pacman -Syuu`
+invocations.
+
+Next, install the required dependencies:
+
+`$ pacman -S base-devel mingw-w64-i686-toolchain mingw-w64-i686-cmake git mingw-w64-i686-ffmpeg mingw-w64-i686-boost mingw-w64-i686-yasm --needed`
+
 ## Create a new directory:
 
 `$ mkdir build`
