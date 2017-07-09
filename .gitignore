@@ -1,6 +1,8 @@
-# CodeBlocks Noise
+# Editor/IDE noise
 chatsounds-preprocessor.layout
 chatsounds-preprocessor.depend
+.kdev4
+chatsounds-preprocessor.kdev4
 
 # External Libraries / Header Files
 include/*
@@ -11,24 +13,3 @@ libs/*
 obj
 bin
 build
-
-# Test Folder
-run
-
-# Compiled Binaries
-chatsounds-preprocessor
-*.exe
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
