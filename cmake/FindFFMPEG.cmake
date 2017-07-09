@@ -34,7 +34,7 @@
 # Originally from VTK project
 
 
-find_path(FFMPEG_INCLUDE_DIR1 avformat.h
+find_path(FFMPEG_INCLUDE_DIR_AVFORMAT avformat.h
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/ffmpeg
   $ENV{FFMPEG_DIR}/libavformat
@@ -48,7 +48,7 @@ find_path(FFMPEG_INCLUDE_DIR1 avformat.h
   /usr/local/include/libavformat
 )
 
-find_path(FFMPEG_INCLUDE_DIR2 avutil.h
+find_path(FFMPEG_INCLUDE_DIR_AVUTIL avutil.h
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/ffmpeg
   $ENV{FFMPEG_DIR}/libavutil
@@ -62,7 +62,7 @@ find_path(FFMPEG_INCLUDE_DIR2 avutil.h
   /usr/local/include/libavutil
 )
 
-find_path(FFMPEG_INCLUDE_DIR3 avcodec.h
+find_path(FFMPEG_INCLUDE_DIR_AVCODEC avcodec.h
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/ffmpeg
   $ENV{FFMPEG_DIR}/libavcodec
@@ -104,12 +104,12 @@ find_path(FFMPEG_INCLUDE_DIR5 avdevice.h
   /usr/local/include/libavdevice
 )
 
-if(FFMPEG_INCLUDE_DIR1)
-  if(FFMPEG_INCLUDE_DIR2)
-    if(FFMPEG_INCLUDE_DIR3)
-      set(FFMPEG_INCLUDE_DIR ${FFMPEG_INCLUDE_DIR1}
-                             ${FFMPEG_INCLUDE_DIR2}
-                             ${FFMPEG_INCLUDE_DIR3})
+if(FFMPEG_INCLUDE_DIR_AVFORMAT)
+  if(FFMPEG_INCLUDE_DIR_AVUTIL)
+    if(FFMPEG_INCLUDE_DIR_AVCODEC)
+      set(FFMPEG_INCLUDE_DIR ${FFMPEG_INCLUDE_DIR_AVFORMAT}
+                             ${FFMPEG_INCLUDE_DIR_AVUTIL}
+                             ${FFMPEG_INCLUDE_DIR_AVCODEC})
     endif()
   endif()
 endif()
@@ -125,7 +125,7 @@ if(FFMPEG_INCLUDE_DIR5)
                          ${FFMPEG_INCLUDE_DIR5}/..)
 endif()
 
-find_library(FFMPEG_avformat_LIBRARY avformat
+find_library(FFMPEG_avformat_LIBRARY NAMES avformat HINTS
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/lib
   $ENV{FFMPEG_DIR}/libavformat
@@ -133,7 +133,7 @@ find_library(FFMPEG_avformat_LIBRARY avformat
   /usr/lib
 )
 
-find_library(FFMPEG_avcodec_LIBRARY avcodec
+find_library(FFMPEG_avcodec_LIBRARY NAMES avcodec HINTS
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/lib
   $ENV{FFMPEG_DIR}/libavcodec
@@ -141,7 +141,7 @@ find_library(FFMPEG_avcodec_LIBRARY avcodec
   /usr/lib
 )
 
-find_library(FFMPEG_avutil_LIBRARY avutil
+find_library(FFMPEG_avutil_LIBRARY NAMES avutil HINTS
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/lib
   $ENV{FFMPEG_DIR}/libavutil
@@ -150,7 +150,7 @@ find_library(FFMPEG_avutil_LIBRARY avutil
 )
 
 if(NOT DISABLE_SWSCALE)
-  find_library(FFMPEG_swscale_LIBRARY swscale
+  find_library(FFMPEG_swscale_LIBRARY NAMES swscale HINTS
     $ENV{FFMPEG_DIR}
     $ENV{FFMPEG_DIR}/lib
     $ENV{FFMPEG_DIR}/libswscale
@@ -159,7 +159,7 @@ if(NOT DISABLE_SWSCALE)
   )
 endif(NOT DISABLE_SWSCALE)
 
-find_library(FFMPEG_avdevice_LIBRARY avdevice
+find_library(FFMPEG_avdevice_LIBRARY NAMES avdevice HINTS
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/lib
   $ENV{FFMPEG_DIR}/libavdevice
@@ -167,14 +167,12 @@ find_library(FFMPEG_avdevice_LIBRARY avdevice
   /usr/lib
 )
 
-find_library(_FFMPEG_z_LIBRARY_ z
+find_library(_FFMPEG_z_LIBRARY_ NAMES z HINTS
   $ENV{FFMPEG_DIR}
   $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
-
-
 
 if(FFMPEG_INCLUDE_DIR)
   if(FFMPEG_avformat_LIBRARY)
@@ -207,9 +205,9 @@ endif()
 
 mark_as_advanced(
   FFMPEG_INCLUDE_DIR
-  FFMPEG_INCLUDE_DIR1
-  FFMPEG_INCLUDE_DIR2
-  FFMPEG_INCLUDE_DIR3
+  FFMPEG_INCLUDE_DIR_AVFORMAT
+  FFMPEG_INCLUDE_DIR_AVUTIL
+  FFMPEG_INCLUDE_DIR_AVCODEC
   FFMPEG_INCLUDE_DIR4
   FFMPEG_INCLUDE_DIR5
   FFMPEG_avformat_LIBRARY

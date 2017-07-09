@@ -27,6 +27,9 @@
 cmake_minimum_required (VERSION 2.6)
 project (chatsounds-preprocessor)
 
+SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
+SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
+
 message (STATUS "        ______            ,                            _   __")
 message (STATUS "       / ___  |          /|                           | | /  \\\\")
 message (STATUS "      / /   | |__   __ _| |_ ___  ___  _   _ _ __   __| |/ /\\ \\\\")
@@ -58,7 +61,6 @@ STRING (REGEX REPLACE "^v([0-9]+)\\.[0-9]+\\.[0-9]+.*" "\\1" CP_VERSION_MAJOR "$
 STRING (REGEX REPLACE "^v[0-9]+\\.([0-9]+)\\.[0-9]+.*" "\\1" CP_VERSION_MINOR "${CP_GIT_BASE_VERSION}")
 STRING (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" CP_VERSION_PATCH "${CP_GIT_BASE_VERSION}")
 STRING (REGEX REPLACE "^v${CP_VERSION_MAJOR}\\.${CP_VERSION_MINOR}\\.${CP_VERSION_PATCH}" "" CP_VERSION_DISTRIBUTION ${CP_GIT_BASE_VERSION})
-#STRING (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+\\-?([^ ])" "\\1" CP_VERSION_DISTRIBUTION "${CP_GIT_BASE_VERSION}")
 
 message (STATUS "Assembled internal version variables <${CP_VERSION_MAJOR}>.<${CP_VERSION_MINOR}>.<${CP_VERSION_PATCH}>-[${CP_VERSION_DISTRIBUTION}]")
 
@@ -93,11 +95,14 @@ configure_file (
 include_directories("${PROJECT_BINARY_DIR}")
 
 find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization)
-include_directories(${Boost_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIR})
-
 find_package(FFMPEG REQUIRED)
+
+include_directories(${Boost_INCLUDE_DIRS})
+
+if (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
+	include_directories (${FFMPEG_INCLUDE_DIR_AVFORMAT})
+endif()
 
 add_executable(chatsounds-preprocessor main.cpp)
 
-target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_LIBRARIES})
-
+target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY})
