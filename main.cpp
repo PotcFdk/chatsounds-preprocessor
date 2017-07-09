@@ -15,6 +15,8 @@
 #define S_SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
 #define S_SOUNDPATH_MAXLEN 150 // Arbitrary limit enforced by Garry's Mod
 
+#define LIST_DURATION_PRECISION 3 // Precision of the sound lengths in the list e.g. (3.141) -> 3
+
 #define S_BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
 
 /// Includes
@@ -584,7 +586,8 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                     f << ',';
 
                 f << "{path=\"" << it2->first << "\",length="
-                  << std::setprecision(17)
+                  << std::fixed
+                  << std::setprecision(LIST_DURATION_PRECISION)
                   << it2->second << "}";
 
             }
