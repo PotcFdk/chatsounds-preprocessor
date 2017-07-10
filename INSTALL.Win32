@@ -17,12 +17,6 @@ Next, install the required dependencies:
 `$ mkdir build`
 `$ cd build`
 
-## Call CMake:
-
-`$ FFMPEG_DIR="`pwd`/../libs/ffmpeg" cmake -G "MSYS Makefiles" -DBoost_USE_MULTITHREADED=ON ..`
-
-For a release-ish build set CMAKE_BUILD_TYPE to Release and consider compiling ffmpeg to avoid useless dependencies.
-
 ## Build ffmpeg (optional)
 
 A helper exists to simplify this:
@@ -31,11 +25,13 @@ A helper exists to simplify this:
 
 Eventually you should end up with a `libs/ffmpeg` folder containing `lib` and `include`.
 
-## Call CMake with the ffmpeg specified
+## Call CMake:
 
-`FFMPEG_DIR="`pwd`/../libs/ffmpeg" cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DBoost_USE_MULTITHREADED=ON ..`
+`$ cmake -G "MSYS Makefiles" -DBoost_USE_MULTITHREADED=ON ..`
 
-In the future, it hopefully won't be required to explicitly mention ffmpeg during the CMake call anymore.
+For a release-ish build set CMAKE_BUILD_TYPE to Release (and also consider compiling ffmpeg to avoid useless dependencies).
+
+`$ cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DBoost_USE_MULTITHREADED=ON ..`
 
 ## Compile
 
