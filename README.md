@@ -15,12 +15,16 @@
                       \|      |_|                                     |/
 ```
 
-This is probably the ugliest C++ code I've ever written.  
-It generates lists for a specific Garry's Mod addon.  
-That's about it.  
+This is probably the ugliest C++ code I've ever written.
+It generates lists for a specific Garry's Mod addon.
+That's about it.
 
 If you're lucky, you might get it to compile.
-You need to link some boost libraries and libbass.
+You need to link some boost libraries and libav.
 
-On most modern GNU/Linux systems, installing boost, running the included `setup.sh` and then running `make` should get it to build.
+On most modern GNU/Linux systems, install boost and libav (can be called ffmpeg-devel depending on the distribution).
+Then create a build directory, `cd` into it and run `cmake ..`.
+
+On Windows, MinGW-w64 on MSYS2 is supposed to get this compiled correctly. See `INSTALL.Win32` for further instructions.
+
 Feel free to [create a GitHub issue](https://github.com/PotcFdk/chatsounds-preprocessor/issues) if it doesn't compile.

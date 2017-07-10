@@ -206,6 +206,7 @@ void InitLibAV()
     {
         cout << "Initializing libavformat..." << endl;
         av_register_all();
+        av_log_set_level(AV_LOG_ERROR);
         avformat_init = true;
     }
 }
@@ -324,7 +325,7 @@ inline double GetSoundDuration(const boost::filesystem::path& path, float *rate)
     int64_t duration = _ps->duration;
     if (duration <= 0) return 0;
     if (_ps->nb_streams != 1) return 0;
-    *rate = _ps->streams[0]->codec->sample_rate;
+    *rate = _ps->streams[0]->codecpar->sample_rate;
     return static_cast<double>(duration)/AV_TIME_BASE;
 }
 
@@ -1224,15 +1225,15 @@ int main(int argc, char* argv[])
         {
             const bool open_ext = print_topinfo();
 
+            const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
+                       * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
+
             if (clp == "-f" || clp == "--full")
                 return Launch_FullUpdate(open_ext);
-            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
+            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "--diff")
                 return Launch_DiffUpdate(open_ext);
             else if (clp == "-h" || clp == "/?" || clp == "--help")
             {
-                const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
-                           * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
-
                 cout << ln_base   << "Usage: " << endl
                      << ln_base   << " -f | --full     -  Full, uncached list generation" << endl
                      << ln_base   << " -d | --diff     -  Normal, cached list generation (default)" << endl
@@ -1241,8 +1242,8 @@ int main(int argc, char* argv[])
                      << ln_base_e << " -v | --version  -  Show the program version" << endl;
             }
             else
-                cout << "Unknown command line parameter: " << clp << endl
-                     << "For usage help, see -h or --help." << endl;
+                cout << ln_base   << "Unknown command line parameter: " << clp << endl
+                     << ln_base_e << "For usage help, see -h or --help." << endl;
         }
     }
 
