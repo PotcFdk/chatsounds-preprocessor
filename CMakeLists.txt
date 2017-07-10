@@ -27,6 +27,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (chatsounds-preprocessor)
 
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
 
@@ -100,13 +101,25 @@ configure_file (
 include_directories("${PROJECT_BINARY_DIR}")
 
 find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization)
-find_package(FFMPEG REQUIRED)
-
 include_directories(${Boost_INCLUDE_DIRS})
 
-if (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
-	include_directories (${FFMPEG_INCLUDE_DIR_AVFORMAT})
-endif()
+if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/include")
+	if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/lib")
+		include_directories ("${PROJECT_SOURCE_DIR}/libs/ffmpeg/include")
+		set (FFMPEG_avformat_LIBRARY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/lib/libavformat.a")
+		set (FFMPEG_avcodec_LIBRARY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/lib/libavcodec.a")
+		set (FFMPEG_avutil_LIBRARY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/lib/libavutil.a")
+		set (FFMPEG_INTERNAL ON)
+	endif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/lib")
+endif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/include")
+
+if (NOT FFMPEG_INTERNAL)
+	find_package(FFMPEG REQUIRED)
+
+	if (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
+		include_directories ("${FFMPEG_INCLUDE_DIR_AVFORMAT}/..")
+	endif (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
+endif (NOT FFMPEG_INTERNAL)
 
 add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
 
