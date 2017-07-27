@@ -15,6 +15,8 @@
 #define S_SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
 #define S_SOUNDPATH_MAXLEN 150 // Arbitrary limit enforced by Garry's Mod
 
+#define LIST_DURATION_PRECISION 3 // Precision of the sound lengths in the list e.g. (3.141) -> 3
+
 #define S_BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
 
 /// Includes
@@ -43,8 +45,10 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-// libbass
-#include <bass.h>
+// libavformat
+extern "C" {
+#include <libavformat/avformat.h>
+}
 
 using namespace std;
 
@@ -64,6 +68,14 @@ const uint_fast8_t SOUNDPATH_MAXLEN = S_SOUNDPATH_MAXLEN;
 
 const char * const BUGTRACKER_LINK = S_BUGTRACKER_LINK;
 
+static const char
+    *EXT_LINE = "                                                                      | |",
+    *RXT_LINE = "                                                                      | |\r",
+    *END_LINE = "                                                                      |/",
+    *RND_LINE = "                                                                      |/\r",
+    *NULL_CHR = "\0";
+
+
 typedef vector<boost::filesystem::path> PathList;
 
 typedef unordered_map<string, pair<string, bool> > SoundMap;
@@ -77,13 +89,33 @@ typedef unordered_map<string, bool> MissingSoundCacheFiles;
 
 ///
 
-#define DVER(X) #X
+unsigned short month, day, year;
 
-#ifdef DISTRIBUTION_VERSION
-const char * _DISTRIBUTION_VERSION = DISTRIBUTION_VERSION;
-#else
-const bool _DISTRIBUTION_VERSION = false;
-#endif // DISTRIBUTION_VERSION
+const char *months[] = {
+    "Jan", "Feb", "Mar", "Apr", "May",
+    "Jun", "Jul", "Aug","Sep", "Oct", "Nov", "Dec"
+};
+
+void getdate ()
+{
+    char temp [] = __DATE__;
+    unsigned char i;
+
+    year = atoi(temp + 7);
+    *(temp + 6) = 0;
+    day = atoi(temp + 4);
+    *(temp + 3) = 0;
+    for (i = 0; i < 12; i++)
+    {
+        if (!strcmp(temp, months[i]))
+        {
+            month = i + 1;
+            return;
+        }
+    }
+}
+
+///
 
 const std::vector<unsigned int> valid_samplerates_ogg =
 {
@@ -167,14 +199,15 @@ struct match_char
     }
 };
 
-bool bass_init = false;
-void InitBass()
+bool avformat_init = false;
+void InitLibAV()
 {
-    if (!bass_init)
+    if (!avformat_init)
     {
-        cout << "Initializing BASS Library..." << endl;
-        BASS_Init(-1,44100,BASS_DEVICE_FREQ,0,NULL);
-        bass_init = true;
+        cout << "Initializing libavformat..." << endl;
+        av_register_all();
+        av_log_set_level(AV_LOG_ERROR);
+        avformat_init = true;
     }
 }
 
@@ -260,14 +293,40 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_last     = __gen_activity_rst;
 }
 
-inline double GetSoundDuration(const boost::filesystem::path& path, float * freq) // Gets the duration of a sound.
+class CPP_AVFormatContext {
+    AVFormatContext *ptr;
+    public: CPP_AVFormatContext() {
+        ptr = avformat_alloc_context();
+        if (ptr == NULL) {
+            throw 51;
+        }
+    }
+    bool operator !() const { return ptr == NULL; }
+    AVFormatContext* get() { return ptr; };
+    AVFormatContext** get_ptr() { return &ptr; };
+    CPP_AVFormatContext(CPP_AVFormatContext&&) = default;
+    CPP_AVFormatContext& operator=(CPP_AVFormatContext&&) = default;
+    CPP_AVFormatContext(const CPP_AVFormatContext&) = delete;
+    CPP_AVFormatContext& operator=(const CPP_AVFormatContext&) = delete;
+    ~CPP_AVFormatContext() {
+        if (ptr)
+            avformat_close_input (&ptr);
+    }
+};
+
+inline double GetSoundDuration(const boost::filesystem::path& path, float *rate) // Gets the duration of a sound.
 {
-    HSTREAM sound = BASS_StreamCreateFile(false, path.c_str(), 0, 0, BASS_STREAM_PRESCAN);
-    QWORD bytecount = BASS_ChannelGetLength(sound, BASS_POS_BYTE);
-    double length = BASS_ChannelBytes2Seconds(sound, bytecount);
-    BASS_ChannelGetAttribute(sound, BASS_ATTRIB_FREQ, freq);
-    BASS_StreamFree(sound);
-    return length;
+    CPP_AVFormatContext ps;
+    AVFormatContext *_ps = ps.get();
+    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
+    if (!ps) return 0;
+
+    avformat_find_stream_info (_ps, NULL);
+    int64_t duration = _ps->duration;
+    if (duration <= 0) return 0;
+    if (_ps->nb_streams != 1) return 0;
+    *rate = _ps->streams[0]->codecpar->sample_rate;
+    return static_cast<double>(duration)/AV_TIME_BASE;
 }
 
 inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
@@ -314,11 +373,11 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             string s_path = path.generic_string();
             boost::filesystem::path full_path = GetAbsolutePath(path);
 
-            float freq = 0;
-            double duration = GetSoundDuration(full_path, &freq);
+            float rate = 0;
+            double duration = GetSoundDuration(full_path, &rate);
             if (
                 ext != ".ogg"
-                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), freq)
+                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), rate)
                     != valid_samplerates_ogg.end())
             )
             {
@@ -327,7 +386,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             }
             else
             {
-                error_log << "[invalid sample rate] " << s_path << ": " << freq << endl;
+                error_log << "[invalid sample rate] " << s_path << ": " << rate << endl;
             }
         }
     }
@@ -528,7 +587,8 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                     f << ',';
 
                 f << "{path=\"" << it2->first << "\",length="
-                  << std::setprecision(17)
+                  << std::fixed
+                  << std::setprecision(LIST_DURATION_PRECISION)
                   << it2->second << "}";
 
             }
@@ -830,13 +890,17 @@ void CleanupFolder(boost::filesystem::path path)
 
 // Modes
 
-int DiffUpdate()
+int DiffUpdate(const bool &open_ext)
 {
+    const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
+               * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
+
     std::chrono::high_resolution_clock::time_point time_begin = std::chrono::high_resolution_clock::now();
 
-    InitBass();
+    cout << ln_base;
+    InitLibAV();
 
-    cout << "Resetting invalid soundfile log..." << endl;
+    cout << ln_base << "Resetting invalid soundfile log..." << endl;
 
     try
     {
@@ -844,21 +908,21 @@ int DiffUpdate()
     }
     catch (boost::filesystem::filesystem_error e)
     {
-        cout << "Cannot reset invalid soundfile log: " << endl << "  " << e.what() << endl << endl;
+        cout << ln_base << "Cannot reset invalid soundfile log: " << endl << "  " << e.what() << endl << endl;
     }
 
-    cout << "Cleaning up sound folder..." << endl;
+    cout << ln_base << "Cleaning up sound folder..." << endl;
     try
     {
         CleanupFolder(SOUNDPATH);
     }
     catch(boost::filesystem::filesystem_error e)
     {
-        cout << "Boost exception: " << e.what() << endl;
+        cout << ln_base << "Boost exception: " << e.what() << endl;
         throw 1;
     }
 
-    cout << "Reading sound cache..." << endl;
+    cout << ln_base << "Reading sound cache..." << endl;
     SoundCache soundcache;
     try
     {
@@ -866,20 +930,20 @@ int DiffUpdate()
     }
     catch (boost::archive::archive_exception e)
     {
-        cout << "Boost exception: " << e.what() << endl;
+        cout << ln_base << "Boost exception: " << e.what() << endl;
         EraseSoundCache();
     }
     catch (int e)
     {
         if (e == 11) {} // No cache file.
         else if (e == 12)
-            cout << "Incompatible sound cache, reset." << endl;
+            cout << ln_base << "Incompatible sound cache, reset." << endl;
         else
-            cout << "ERROR " << e << endl;
+            cout << ln_base << "ERROR " << e << endl;
         EraseSoundCache();
     }
 
-    cout << "Scanning sounds...";
+    cout << ln_base << "Scanning sounds...";
 
     SoundCache new_soundcache;
     MissingSoundCacheFiles to_be_updated;
@@ -887,7 +951,7 @@ int DiffUpdate()
     try
     {
         new_soundcache = GenerateSoundCache();
-        cout << endl << "Calculating difference...";
+        cout << endl << ln_base_e << "Calculating difference..." << flush;
         to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
         AddMissingLists(to_be_updated, new_soundcache);
     }
@@ -924,9 +988,11 @@ int DiffUpdate()
     return 0;
 }
 
-int FullUpdate()
+int FullUpdate(const bool &open_ext)
 {
-    cout << "Resetting cache..." << endl;
+    const char * const ln_base = open_ext ? RXT_LINE : NULL_CHR;
+
+    cout << ln_base << "Resetting cache..." << endl;
 
     try
     {
@@ -934,21 +1000,21 @@ int FullUpdate()
     }
     catch (boost::filesystem::filesystem_error e)
     {
-        cout << "Cannot reset cache: " << endl << "  " << e.what() << endl << endl;
+        cout << ln_base << "Cannot reset cache: " << endl << "  " << e.what() << endl << endl;
     }
 
-    cout << "Deleting old lists..." << endl;
+    cout << ln_base << "Deleting old lists..." << endl;
     try
     {
         ClearFolder(LISTPATH);
     }
     catch(boost::filesystem::filesystem_error e)
     {
-        cout << "Boost exception: " << e.what() << endl;
+        cout << ln_base << "Boost exception: " << e.what() << endl;
         throw 3;
     }
 
-    return DiffUpdate();
+    return DiffUpdate(open_ext);
 }
 
 
@@ -966,31 +1032,25 @@ void showError(int e)
     cin.get();
 }
 
-
-
-void print_topinfo()
+bool print_topinfo()
 {
-    static const string
-        EXT_LINE = "                                                                      | |",
-        END_LINE = "                                                                      |/";
+    getdate();
 
     const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
-        + intDigits(AutoVersion::MAJOR)
-        + intDigits(AutoVersion::MINOR)
-        + intDigits(AutoVersion::BUILD)
-        + (_DISTRIBUTION_VERSION ? intDigits(_DISTRIBUTION_VERSION) + 1 : 0)
-        + string(" by PotcFdk  (Build ").length()
-        + intDigits(AutoVersion::BUILDS_COUNT)
-        + string(AutoVersion::YEAR).length()
-        + string(AutoVersion::MONTH).length()
-        + string(AutoVersion::DATE).length() + 6;
+        + intDigits(Version::MAJOR)
+        + intDigits(Version::MINOR)
+        + intDigits(Version::PATCH)
+#if HAS_VERSION_DISTRIBUTION
+        + strlen(Version::DISTRIBUTION) + 1
+#endif
+        + string(" by PotcFdk").length() - 1; // -1 for partly overwriting, looks cool
 
     cout << "        ______            ,                            _   __" << endl
          << "       / ___  |          /|                           | | /  \\\\" << endl
          << "      / /   | |__   __ _| |_ ___  ___  _   _ _ __   __| |/ /\\ \\\\" << endl
          << "     / /    | '_ \\ / _` | __/ __|/ _ \\| | | | `_ \\ / _` |\\ \\\\\\ \\\\" << endl
          << "    ( (     | | | | (_| | |_\\__ \\ (_) | |_| | | | | (_| | \\ \\\\\\//" << endl
-         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,_|\\ \\ \\\\" << endl
+         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,/ \\ \\ \\\\" << endl
          << "      \\ \\____________                                   \\ \\/ //" << endl
          << "       \\____________ \\'\"`-._,-'\"`-._,-'\"`-._,-'\"`-._,-'\"`\\__//" << endl
          << "         ____  | |__) ) __ ___ _ __  _ __ ___   ___ ___  ___ ___  ___  _ __" << endl
@@ -1003,55 +1063,60 @@ void print_topinfo()
          << endl;
 
     if (tag_line_length < 70)
-        cout << EXT_LINE << '\r';
+        cout << RXT_LINE;
 
     cout << "chatsounds-preprocessor v"
-         << AutoVersion::MAJOR << "."
-         << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD;
-
-    if (_DISTRIBUTION_VERSION)
-        cout << "-" << _DISTRIBUTION_VERSION;
-
-    cout << " by PotcFdk  (Build "
-         << AutoVersion::BUILDS_COUNT << " @ "
-         << AutoVersion::YEAR << "/"
-         << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE << ")"
-         << endl;
+         << Version::MAJOR << "."
+         << Version::MINOR << "."
+         << Version::PATCH
+#if HAS_VERSION_DISTRIBUTION
+         << Version::DISTRIBUTION
+#endif
+         << " by PotcFdk" << endl;
 
     if (tag_line_length < 70)
-        cout << EXT_LINE << endl << EXT_LINE << '\r';
+        cout << EXT_LINE << endl << RXT_LINE;
     else
         cout << endl;
 
     cout << "Please report any bugs / issues to:" << endl;
 
     if (tag_line_length < 70)
-        cout << END_LINE << '\r';
+        cout << RXT_LINE;
 
-    cout << BUGTRACKER_LINK << endl << endl;
+    cout << BUGTRACKER_LINK << endl;
+
+    if (tag_line_length < 70)
+    {
+        cout << EXT_LINE << endl << RXT_LINE;
+        return true;
+    }
+    else
+    {
+        cout << endl;
+        return tag_line_length < 70;
+    }
 }
 
 void print_versioninfo()
 {
+    getdate();
+
     cout << "chatsounds-preprocessor"
+         << endl << "Author     : PotcFdk"
          << endl << "Version    : "
-         << AutoVersion::MAJOR << "."
-         << AutoVersion::MINOR << "."
-         << AutoVersion::BUILD;
-
-    if (_DISTRIBUTION_VERSION)
-        cout << "-" << _DISTRIBUTION_VERSION;
-
-    cout << endl << "Build      : "
-         << AutoVersion::BUILDS_COUNT
+         << Version::MAJOR << "."
+         << Version::MINOR << "."
+         << Version::PATCH
+#if HAS_VERSION_DISTRIBUTION
+         << Version::DISTRIBUTION
+#endif
          << endl << "Build date : "
-         << AutoVersion::YEAR << "/"
-         << AutoVersion::MONTH << "/"
-         << AutoVersion::DATE
-         << endl
-
+         << year << "-";
+    if (month < 10) cout << 0;
+    cout << month << "-";
+    if (day < 10) cout << 0;
+    cout << day << endl
 #if defined(__clang__)
          << "Compiler   : Clang/LLVM, version "
 #if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
@@ -1079,25 +1144,31 @@ void print_versioninfo()
     // More verbose information
 
     cout << "Boost Info : " << endl
-         << " * " << BOOST_COMPILER << " on " << BOOST_PLATFORM << endl
-         << " * " << BOOST_STDLIB << endl
-         << " * Boost library: version " << (BOOST_VERSION / 100000)
+         << " * Boost version " << (BOOST_VERSION / 100000)
          << '.' << ((BOOST_VERSION / 100) % 1000)
-         << '.' << (BOOST_VERSION % 100)
-         << endl;
+         << '.' << (BOOST_VERSION % 100) << endl
+         << " * " << BOOST_COMPILER << " on " << BOOST_PLATFORM << endl
+         << " * " << BOOST_STDLIB << endl;
+
+    cout << "libav Info : " << endl
+         << " * libavformat " << AV_STRINGIFY(LIBAVFORMAT_VERSION) << " (ct:" << LIBAVFORMAT_VERSION_INT << " rt:" << avformat_version() << ")" << endl
+         << " * libavcodec  " << AV_STRINGIFY(LIBAVCODEC_VERSION)  << " (ct:" << LIBAVCODEC_VERSION_INT  << " rt:" << avcodec_version()  << ")" << endl
+         << " * libavutil   " << AV_STRINGIFY(LIBAVUTIL_VERSION)   << " (ct:" << LIBAVUTIL_VERSION_INT   << " rt:" << avutil_version()   << ")" << endl;
 }
 
 
 
-int Launch_DiffUpdate()
+int Launch_DiffUpdate(const bool &open_ext)
 {
-    cout << "Running in DIFF mode." << endl;
+    const char * const ln_base = open_ext ? RXT_LINE : NULL_CHR;
+
+    cout << ln_base << "Running in DIFF mode." << endl;
     if (detectWorkingDir())
-        cout << "Switched working directory to executable path." << endl;
+        cout << ln_base << "Switched working directory to executable path." << endl;
 
     try
     {
-        DiffUpdate();
+        DiffUpdate(open_ext);
     }
     catch (int e)
     {
@@ -1111,15 +1182,17 @@ int Launch_DiffUpdate()
     return 0;
 }
 
-int Launch_FullUpdate()
+int Launch_FullUpdate(const bool &open_ext)
 {
-    cout << "Running in FULL mode." << endl;
+    const char * const ln_base = open_ext ? RXT_LINE : NULL_CHR;
+
+    cout << ln_base << "Running in FULL mode." << endl;
     if (detectWorkingDir())
-        cout << "Switched working directory to executable path." << endl;
+        cout << ln_base << "Switched working directory to executable path." << endl;
 
     try
     {
-        FullUpdate();
+        FullUpdate(open_ext);
     }
     catch (int e)
     {
@@ -1143,8 +1216,8 @@ int main(int argc, char* argv[])
 
     if (argc == 1)
     {
-        print_topinfo();
-        return Launch_DiffUpdate();
+        const bool open_ext = print_topinfo();
+        return Launch_DiffUpdate(open_ext);
     }
     else if (argc >= 2)
     {
@@ -1155,24 +1228,27 @@ int main(int argc, char* argv[])
             print_versioninfo();
         else
         {
-            print_topinfo();
+            const bool open_ext = print_topinfo();
+
+            const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
+                       * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
 
             if (clp == "-f" || clp == "--full")
-                return Launch_FullUpdate();
-            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "-diff")
-                return Launch_DiffUpdate();
+                return Launch_FullUpdate(open_ext);
+            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "--diff")
+                return Launch_DiffUpdate(open_ext);
             else if (clp == "-h" || clp == "/?" || clp == "--help")
             {
-                cout << "Usage: " << endl
-                     << " -f | --full     -  Full, uncached list generation" << endl
-                     << " -d | --diff     -  Normal, cached list generation (default)" << endl
-                     << " -l | --lite     -  Same as --diff" << endl
-                     << " -h | --help     -  Usage help (this text right here)" << endl
-                     << " -v | --version  -  Show the program version" << endl;
+                cout << ln_base   << "Usage: " << endl
+                     << ln_base   << " -f | --full     -  Full, uncached list generation" << endl
+                     << ln_base   << " -d | --diff     -  Normal, cached list generation (default)" << endl
+                     << ln_base   << " -l | --lite     -  Same as --diff" << endl
+                     << ln_base   << " -h | --help     -  Usage help (this text right here)" << endl
+                     << ln_base_e << " -v | --version  -  Show the program version" << endl;
             }
             else
-                cout << "Unknown command line parameter: " << clp << endl
-                     << "For usage help, see -h or --help." << endl;
+                cout << ln_base   << "Unknown command line parameter: " << clp << endl
+                     << ln_base_e << "For usage help, see -h or --help." << endl;
         }
     }
 
