@@ -12,11 +12,6 @@ Next, install the required dependencies:
 
 `$ pacman -S base-devel mingw-w64-i686-toolchain mingw-w64-i686-cmake git mingw-w64-i686-ffmpeg mingw-w64-i686-boost mingw-w64-i686-yasm --needed`
 
-## Create a new directory:
-
-`$ mkdir build`
-`$ cd build`
-
 ## Build ffmpeg (optional)
 
 A helper exists to simplify this:
@@ -24,6 +19,11 @@ A helper exists to simplify this:
 `$ ./setup-ffmpeg.sh`
 
 Eventually you should end up with a `libs/ffmpeg` folder containing `lib` and `include`.
+
+## Create a new directory:
+
+`$ mkdir build`
+`$ cd build`
 
 ## Call CMake:
 
