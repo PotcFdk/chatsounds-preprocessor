@@ -1103,6 +1103,7 @@ void print_versioninfo()
     getdate();
 
     cout << "chatsounds-preprocessor"
+         << endl << "Author     : PotcFdk"
          << endl << "Version    : "
          << Version::MAJOR << "."
          << Version::MINOR << "."
@@ -1143,12 +1144,16 @@ void print_versioninfo()
     // More verbose information
 
     cout << "Boost Info : " << endl
-         << " * " << BOOST_COMPILER << " on " << BOOST_PLATFORM << endl
-         << " * " << BOOST_STDLIB << endl
-         << " * Boost library: version " << (BOOST_VERSION / 100000)
+         << " * Boost version " << (BOOST_VERSION / 100000)
          << '.' << ((BOOST_VERSION / 100) % 1000)
-         << '.' << (BOOST_VERSION % 100)
-         << endl;
+         << '.' << (BOOST_VERSION % 100) << endl
+         << " * " << BOOST_COMPILER << " on " << BOOST_PLATFORM << endl
+         << " * " << BOOST_STDLIB << endl;
+
+    cout << "libav Info : " << endl
+         << " * libavformat " << AV_STRINGIFY(LIBAVFORMAT_VERSION) << " (ct:" << LIBAVFORMAT_VERSION_INT << " rt:" << avformat_version() << ")" << endl
+         << " * libavcodec  " << AV_STRINGIFY(LIBAVCODEC_VERSION)  << " (ct:" << LIBAVCODEC_VERSION_INT  << " rt:" << avcodec_version()  << ")" << endl
+         << " * libavutil   " << AV_STRINGIFY(LIBAVUTIL_VERSION)   << " (ct:" << LIBAVUTIL_VERSION_INT   << " rt:" << avutil_version()   << ")" << endl;
 }
 
 
