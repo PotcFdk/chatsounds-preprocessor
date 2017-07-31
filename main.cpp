@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iomanip>
 #include <chrono>
+#include <future>
 
 #include "version.h"
 
@@ -80,7 +81,7 @@ typedef vector<boost::filesystem::path> PathList;
 
 typedef unordered_map<string, pair<string, bool> > SoundMap;
 
-typedef pair<string, double> SoundInfo;
+typedef pair<string, shared_future<double>> SoundInfo;
 typedef deque<SoundInfo> SoundInfos;
 typedef map<string, SoundInfos> SoundInfoMap;
 
@@ -325,8 +326,13 @@ inline double GetSoundDuration(const boost::filesystem::path& path, float *rate)
     int64_t duration = _ps->duration;
     if (duration <= 0) return 0;
     if (_ps->nb_streams != 1) return 0;
-    *rate = _ps->streams[0]->codecpar->sample_rate;
+    //*rate = _ps->streams[0]->codecpar->sample_rate;
     return static_cast<double>(duration)/AV_TIME_BASE;
+}
+
+inline shared_future<double> GetSoundDurationFuture(const boost::filesystem::path& path, float *rate)
+{
+    return async(GetSoundDuration, path, rate);
 }
 
 inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
@@ -373,8 +379,8 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             string s_path = path.generic_string();
             boost::filesystem::path full_path = GetAbsolutePath(path);
 
-            float rate = 0;
-            double duration = GetSoundDuration(full_path, &rate);
+            float rate = 44100;
+            shared_future<double> duration = GetSoundDurationFuture(full_path, &rate);
             if (
                 ext != ".ogg"
                 || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), rate)
@@ -589,8 +595,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                 f << "{path=\"" << it2->first << "\",length="
                   << std::fixed
                   << std::setprecision(LIST_DURATION_PRECISION)
-                  << it2->second << "}";
-
+                  << it2->second.get() << "}";
             }
             f << "}\n";
         }
