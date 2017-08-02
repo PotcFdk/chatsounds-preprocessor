@@ -100,7 +100,7 @@ configure_file (
 
 include_directories("${PROJECT_BINARY_DIR}")
 
-find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization)
+find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
 if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/include")

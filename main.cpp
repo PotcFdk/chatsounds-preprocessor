@@ -37,6 +37,7 @@
 
 // Boost
 #include <boost/version.hpp>
+#include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -208,6 +209,16 @@ void InitLibAV()
         av_register_all();
         av_log_set_level(AV_LOG_ERROR);
         avformat_init = true;
+    }
+}
+
+bool is_interactive = true;
+inline void interactive_wait_for_any_key()
+{
+    if (is_interactive)
+    {
+        cout << endl << "Press ENTER to exit..." << endl;
+        cin.get();
     }
 }
 
@@ -980,9 +991,9 @@ int DiffUpdate(const bool &open_ext)
              << "Please open '" << INVALID_FILE_LOG_PATH << "' and double-check these files." << endl
              << "They might be corrupt, empty or have an unsupported sample rate or path." << endl
              << "If you have confirmed they work in-game and believe this is an error, visit" << endl
-             << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl
-             << "Press ENTER to exit..." << endl;
-        cin.get();
+             << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl;
+        interactive_wait_for_any_key();
+        return -20;
     }
 
     return 0;
@@ -1028,8 +1039,7 @@ void showError(int e)
     else
         cout << "The error message above should give you an idea on what might be wrong." << endl;
 
-    cout << endl << "Press ENTER to exit..." << endl;
-    cin.get();
+    interactive_wait_for_any_key();
 }
 
 bool print_topinfo()
@@ -1168,18 +1178,18 @@ int Launch_DiffUpdate(const bool &open_ext)
 
     try
     {
-        DiffUpdate(open_ext);
+        return DiffUpdate(open_ext);
     }
     catch (int e)
     {
         showError(e);
-        return -1;
+        return -e;
     }
     catch (...)
     {
         showError(99);
+        return -99;
     }
-    return 0;
 }
 
 int Launch_FullUpdate(const bool &open_ext)
@@ -1192,7 +1202,7 @@ int Launch_FullUpdate(const bool &open_ext)
 
     try
     {
-        FullUpdate(open_ext);
+        return FullUpdate(open_ext);
     }
     catch (int e)
     {
@@ -1203,54 +1213,84 @@ int Launch_FullUpdate(const bool &open_ext)
     {
         showError(99);
     }
-    return 0;
 }
 
 
 
 
+pair<string, string> win_help_cmd_param(const string& s)
+{
+    if (s == "/?") {
+        return make_pair(string("help"), string());
+    } else {
+        return make_pair(string(), string());
+    }
+}
 
 int main(int argc, char* argv[])
 {
     parent_dir = *argv;
 
-    if (argc == 1)
-    {
+    boost::program_options::options_description commands("Commands");
+    commands.add_options()
+        ("help,h", "Usage help")
+        ("version,v", "Show the program version")
+        ("full,f", "Full, uncached list generation")
+        ("diff,d", "Normal, cached list generation (default)")
+        ("lite,l", "Same as --diff")
+    ;
+
+    boost::program_options::options_description parameters("Parameters");
+    parameters.add_options()
+        ("non-interactive", "non-interactive mode (don't expect any user input)")
+    ;
+
+    boost::program_options::options_description options("Allowed options");
+    options.add(commands).add(parameters);
+
+    boost::program_options::variables_map vm;
+    try {
+        boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
+            .options(options).extra_parser(win_help_cmd_param).run(), vm);
+        boost::program_options::notify(vm);
+    } catch (boost::program_options::unknown_option e) {
         const bool open_ext = print_topinfo();
-        return Launch_DiffUpdate(open_ext);
+        cout << (open_ext ? RXT_LINE : NULL_CHR) << e.what() << endl
+             << (open_ext ? RND_LINE : NULL_CHR) << "For usage help, see -h or --help." << endl;
+        return -4;
     }
-    else if (argc >= 2)
+
+    if (vm.count("version"))
     {
-        string clp(argv[1]);
-        boost::algorithm::to_lower(clp);
-
-        if (clp == "-v" || clp == "--version")
-            print_versioninfo();
-        else
-        {
-            const bool open_ext = print_topinfo();
-
-            const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
-                       * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
-
-            if (clp == "-f" || clp == "--full")
-                return Launch_FullUpdate(open_ext);
-            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "--diff")
-                return Launch_DiffUpdate(open_ext);
-            else if (clp == "-h" || clp == "/?" || clp == "--help")
-            {
-                cout << ln_base   << "Usage: " << endl
-                     << ln_base   << " -f | --full     -  Full, uncached list generation" << endl
-                     << ln_base   << " -d | --diff     -  Normal, cached list generation (default)" << endl
-                     << ln_base   << " -l | --lite     -  Same as --diff" << endl
-                     << ln_base   << " -h | --help     -  Usage help (this text right here)" << endl
-                     << ln_base_e << " -v | --version  -  Show the program version" << endl;
-            }
-            else
-                cout << ln_base   << "Unknown command line parameter: " << clp << endl
-                     << ln_base_e << "For usage help, see -h or --help." << endl;
-        }
+        print_versioninfo();
+        return 0;
     }
+
+    if (vm.count("non-interactive"))
+    {
+        is_interactive = false;
+    }
+
+    const bool open_ext = print_topinfo();
+
+    const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
+               * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
+
+    if (vm.count("full"))
+        return Launch_FullUpdate(open_ext);
+    else if (vm.count("diff") || vm.count("lite"))
+        return Launch_DiffUpdate(open_ext);
+    else if (vm.count("help"))
+    {
+        cout << ln_base   << "Usage: " << endl
+             << ln_base   << " -f | --full     -  Full, uncached list generation" << endl
+             << ln_base   << " -d | --diff     -  Normal, cached list generation (default)" << endl
+             << ln_base   << " -l | --lite     -  Same as --diff" << endl
+             << ln_base   << " -h | --help     -  Usage help (this text right here)" << endl
+             << ln_base_e << " -v | --version  -  Show the program version" << endl;
+    }
+    else
+        return Launch_DiffUpdate(open_ext);
 
     invalid_file_log_close();
 

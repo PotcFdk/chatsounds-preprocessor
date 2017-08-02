@@ -3,6 +3,9 @@
 1: DiffUpdate: Sound path was not found / inaccessible.
 2: FullUpdate: Sound path was not found / inaccessible.
 3: Sound list path was not found / inaccessible.
+4: Invalid command-line option(s)
+
+20: Generic sound file error
 
 31: Modified sound file path scan 1 iteration count exceeded 300.
 32: Modified sound file path scan 2 iteration count exceeded 300.
