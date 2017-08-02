@@ -1220,6 +1220,14 @@ int Launch_FullUpdate(const bool &open_ext)
 
 
 
+pair<string, string> win_help_cmd_param(const string& s)
+{
+    if (s == "/?") {
+        return make_pair(string("help"), string());
+    } else {
+        return make_pair(string(), string());
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -1227,7 +1235,7 @@ int main(int argc, char* argv[])
 
     boost::program_options::options_description commands("Commands");
     commands.add_options()
-        ("help,h,?", "Usage help")
+        ("help,h", "Usage help")
         ("version,v", "Show the program version")
         ("full,f", "Full, uncached list generation")
         ("diff,d", "Normal, cached list generation (default)")
@@ -1239,12 +1247,13 @@ int main(int argc, char* argv[])
         ("non-interactive", "non-interactive mode (don't expect any user input)")
     ;
 
-    boost::program_options::options_description visible("Allowed options");
-    visible.add(commands).add(parameters);
+    boost::program_options::options_description options("Allowed options");
+    options.add(commands).add(parameters);
 
     boost::program_options::variables_map vm;
     try {
-        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, visible), vm);
+        boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
+            .options(options).extra_parser(win_help_cmd_param).run(), vm);
         boost::program_options::notify(vm);
     } catch (boost::program_options::unknown_option e) {
         const bool open_ext = print_topinfo();
