@@ -37,6 +37,7 @@
 
 // Boost
 #include <boost/version.hpp>
+#include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -1224,67 +1225,65 @@ int main(int argc, char* argv[])
 {
     parent_dir = *argv;
 
-    // check if --non-interactive
-    if (argc >= 3)
-    {
-        for (int i = 1; i < argc; ++i)
-        {
-            string clp(argv[i]);
-            boost::algorithm::to_lower(clp);
-            if (clp == "--non-interactive")
-            {
-                is_interactive = false;
-                // the main routine below only respects argv[1],
-                // so if this was supplied as argv[1],
-                // switch them around
-                if (i == 1)
-                {
-                    char *t = argv[1];
-                    argv[1] = argv[2];
-                    argv[2] = t;
-                }
-                break;
-            }
-        }
-    }
+    boost::program_options::options_description commands("Commands");
+    commands.add_options()
+        ("help,h,?", "Usage help")
+        ("version,v", "Show the program version")
+        ("full,f", "Full, uncached list generation")
+        ("diff,d", "Normal, cached list generation (default)")
+        ("lite,l", "Same as --diff")
+    ;
 
-    if (argc == 1)
-    {
+    boost::program_options::options_description parameters("Parameters");
+    parameters.add_options()
+        ("non-interactive", "non-interactive mode (don't expect any user input)")
+    ;
+
+    boost::program_options::options_description visible("Allowed options");
+    visible.add(commands).add(parameters);
+
+    boost::program_options::variables_map vm;
+    try {
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, visible), vm);
+        boost::program_options::notify(vm);
+    } catch (boost::program_options::unknown_option e) {
         const bool open_ext = print_topinfo();
-        return Launch_DiffUpdate(open_ext);
+        cout << (open_ext ? RXT_LINE : NULL_CHR) << e.what() << endl
+             << (open_ext ? RND_LINE : NULL_CHR) << "For usage help, see -h or --help." << endl;
+        return -4;
     }
-    else if (argc >= 2)
+
+    if (vm.count("version"))
     {
-        string clp(argv[1]);
-        boost::algorithm::to_lower(clp);
-
-        if (clp == "-v" || clp == "--version")
-            print_versioninfo();
-        else
-        {
-            const bool open_ext = print_topinfo();
-
-            const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
-                       * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
-
-            if (clp == "-f" || clp == "--full")
-                return Launch_FullUpdate(open_ext);
-            else if (clp == "-l" || clp == "--lite" || clp == "-d" || clp == "--diff")
-                return Launch_DiffUpdate(open_ext);
-            else if (clp == "-h" || clp == "/?" || clp == "--help")
-            {
-                cout << ln_base   << "Usage: " << endl
-                     << ln_base   << " -f | --full     -  Full, uncached list generation" << endl
-                     << ln_base   << " -d | --diff     -  Normal, cached list generation (default)" << endl
-                     << ln_base   << " -l | --lite     -  Same as --diff" << endl
-                     << ln_base   << " -h | --help     -  Usage help (this text right here)" << endl
-                     << ln_base_e << " -v | --version  -  Show the program version" << endl;
-            }
-            else
-                cout << ln_base   << "Unknown command line parameter: " << clp << endl
-                     << ln_base_e << "For usage help, see -h or --help." << endl;
-        }
+        print_versioninfo();
+        return 0;
     }
+
+    if (vm.count("non-interactive"))
+    {
+        is_interactive = false;
+    }
+
+    const bool open_ext = print_topinfo();
+
+    const char * const ln_base   = open_ext ? RXT_LINE : NULL_CHR,
+               * const ln_base_e = open_ext ? RND_LINE : NULL_CHR;
+
+    if (vm.count("full"))
+        return Launch_FullUpdate(open_ext);
+    else if (vm.count("diff") || vm.count("lite"))
+        return Launch_DiffUpdate(open_ext);
+    else if (vm.count("help"))
+    {
+        cout << ln_base   << "Usage: " << endl
+             << ln_base   << " -f | --full     -  Full, uncached list generation" << endl
+             << ln_base   << " -d | --diff     -  Normal, cached list generation (default)" << endl
+             << ln_base   << " -l | --lite     -  Same as --diff" << endl
+             << ln_base   << " -h | --help     -  Usage help (this text right here)" << endl
+             << ln_base_e << " -v | --version  -  Show the program version" << endl;
+    }
+    else
+        return Launch_DiffUpdate(open_ext);
 
     invalid_file_log_close();
 
