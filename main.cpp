@@ -1178,7 +1178,7 @@ int Launch_DiffUpdate(const bool &open_ext)
 
     try
     {
-        DiffUpdate(open_ext);
+        return DiffUpdate(open_ext);
     }
     catch (int e)
     {
@@ -1190,7 +1190,6 @@ int Launch_DiffUpdate(const bool &open_ext)
         showError(99);
         return -99;
     }
-    return 0;
 }
 
 int Launch_FullUpdate(const bool &open_ext)
@@ -1203,7 +1202,7 @@ int Launch_FullUpdate(const bool &open_ext)
 
     try
     {
-        FullUpdate(open_ext);
+        return FullUpdate(open_ext);
     }
     catch (int e)
     {
@@ -1214,7 +1213,6 @@ int Launch_FullUpdate(const bool &open_ext)
     {
         showError(99);
     }
-    return 0;
 }
 
 
