@@ -4,6 +4,8 @@
 2: FullUpdate: Sound path was not found / inaccessible.
 3: Sound list path was not found / inaccessible.
 
+20: Generic sound file error
+
 31: Modified sound file path scan 1 iteration count exceeded 300.
 32: Modified sound file path scan 2 iteration count exceeded 300.
 33: Missing sound list scan iteration count exceeded 300.

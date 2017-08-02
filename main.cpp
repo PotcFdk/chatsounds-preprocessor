@@ -211,6 +211,16 @@ void InitLibAV()
     }
 }
 
+bool is_interactive = true;
+inline void interactive_wait_for_any_key()
+{
+    if (is_interactive)
+    {
+        cout << endl << "Press ENTER to exit..." << endl;
+        cin.get();
+    }
+}
+
 char * parent_dir = NULL;
 bool detectWorkingDir()
 {
@@ -980,9 +990,9 @@ int DiffUpdate(const bool &open_ext)
              << "Please open '" << INVALID_FILE_LOG_PATH << "' and double-check these files." << endl
              << "They might be corrupt, empty or have an unsupported sample rate or path." << endl
              << "If you have confirmed they work in-game and believe this is an error, visit" << endl
-             << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl
-             << "Press ENTER to exit..." << endl;
-        cin.get();
+             << "  " << BUGTRACKER_LINK << endl << "and post a bug report." << endl;
+        interactive_wait_for_any_key();
+        return -20;
     }
 
     return 0;
@@ -1028,8 +1038,7 @@ void showError(int e)
     else
         cout << "The error message above should give you an idea on what might be wrong." << endl;
 
-    cout << endl << "Press ENTER to exit..." << endl;
-    cin.get();
+    interactive_wait_for_any_key();
 }
 
 bool print_topinfo()
@@ -1173,11 +1182,12 @@ int Launch_DiffUpdate(const bool &open_ext)
     catch (int e)
     {
         showError(e);
-        return -1;
+        return -e;
     }
     catch (...)
     {
         showError(99);
+        return -99;
     }
     return 0;
 }
@@ -1213,6 +1223,30 @@ int Launch_FullUpdate(const bool &open_ext)
 int main(int argc, char* argv[])
 {
     parent_dir = *argv;
+
+    // check if --non-interactive
+    if (argc >= 3)
+    {
+        for (int i = 1; i < argc; ++i)
+        {
+            string clp(argv[i]);
+            boost::algorithm::to_lower(clp);
+            if (clp == "--non-interactive")
+            {
+                is_interactive = false;
+                // the main routine below only respects argv[1],
+                // so if this was supplied as argv[1],
+                // switch them around
+                if (i == 1)
+                {
+                    char *t = argv[1];
+                    argv[1] = argv[2];
+                    argv[2] = t;
+                }
+                break;
+            }
+        }
+    }
 
     if (argc == 1)
     {
