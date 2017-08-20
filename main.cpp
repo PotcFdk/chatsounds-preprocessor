@@ -31,7 +31,7 @@
 
 // List
 #include <tuple>
-#include <deque>
+#include <list>
 #include <map>
 #include <unordered_map>
 
@@ -79,10 +79,11 @@ static const char
 
 typedef vector<boost::filesystem::path> PathList;
 
-typedef unordered_map<string, pair<string, bool> > SoundMap;
+typedef tuple<string, string, bool> SoundMapEntry;
+typedef list<SoundMapEntry> SoundMap;
 
 typedef pair<string, double> SoundInfo;
-typedef deque<SoundInfo> SoundInfos;
+typedef list<SoundInfo> SoundInfos;
 typedef map<string, SoundInfos> SoundInfoMap;
 
 typedef unordered_map<string, int> SoundCache;
@@ -452,6 +453,9 @@ SoundMap ParseSoundMap(const boost::filesystem::path& path)
                     source = boost::algorithm::trim_copy(items.at(0));
                     alias  = boost::algorithm::trim_copy(items.at(1));
 
+                    boost::algorithm::to_lower(source);
+                    boost::algorithm::to_lower(alias);
+
                     replace = false; // default behavior: don't replace, just alias
 
                     if (items_size == 3)
@@ -464,7 +468,7 @@ SoundMap ParseSoundMap(const boost::filesystem::path& path)
                         }
                     }
 
-                    soundmap[source] = make_pair(alias, replace);
+                    soundmap.emplace_back(make_tuple(source, alias, replace));
                 }
             }
         }
@@ -496,17 +500,13 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
         {
             SoundInfos info = ProcessSoundGroup(*it);
             _info_list_name = boost::algorithm::to_lower_copy(it->filename().string());
-            if (list.find (_info_list_name) == list.end())
+            if (!list.count(_info_list_name))
             { // Doesn't exist, just add it.
                 list[_info_list_name] = info;
             }
             else
             { // Exists, merge it.
-                SoundInfos * info2 = &list[_info_list_name];
-                for (SoundInfos::const_iterator it = info.begin(); it != info.end(); ++it)
-                {
-                    info2->push_back(*it);
-                }
+                list[_info_list_name].splice(list[_info_list_name].begin(), info);
             }
         }
         else if (boost::filesystem::is_regular_file(sub_path)) // It's a single file.
@@ -521,7 +521,7 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
                 {
                     SoundInfo info = *soundinfo;
                     _info_list_name = boost::algorithm::to_lower_copy(it->filename().replace_extension("").string());
-                    if (list.find (_info_list_name) == list.end())
+                    if (!list.count (_info_list_name))
                     { // Doesn't exist, just add it.
                         list[_info_list_name] = SoundInfos {info};
                     }
@@ -536,33 +536,46 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
 
     if (soundmap.size() > 0) // we have a custom sound map
     {
-        SoundInfoMap::iterator it = list.begin();
-        while (it != list.end())
+        for (SoundMap::iterator it = soundmap.begin(); it != soundmap.end(); ++it) // iterate over the sound map
         {
-            for (SoundMap::iterator it2 = soundmap.begin(); it2 != soundmap.end(); ++it2)
+            // Remember: *it = [ ( source, alias, (bool) replace ) ]
+            if (list.count(get<0>(*it))) // if source exists in the list
             {
-                // Remember: it2 = [ source : ( alias, (bool) replace ) ]
-                if (boost::iequals(it->first, it2->first)) // soundname == source?
+                string alias = get<1>(*it);
+
+                if (!list.count(alias)) // the target / aliased entry doesn't exist in the sound set
                 {
-                    list[get<0>(it2->second)] = it->second; // list[alias] = source data
-                    if (get<1>(it2->second)) // Replace?
+                    if (get<2>(*it)) // Replace?
                     {
-                        it = list.erase(it); // Yes, replace (-> delete the source entry).
-                        // We're /so/ done with this element.
-                        // Also, we took care of the next `it`, so let's just continue the outer loop.
-                        goto restartSoundInfoMapperLoop;
+                        list[alias] = move(list[get<0>(*it)]); // list[alias] = source data
+                        list.erase(get<0>(*it)); // -> delete the source entry
+                    }
+                    else
+                    {
+                        list[alias] = list[get<0>(*it)];
                     }
                 }
-            }
-            ++it;
-            restartSoundInfoMapperLoop:;
-        }
-    }
+                else
+                {
+                    if (get<2>(*it)) // Replace?
+                    {
+                        list[alias].merge(list[get<0>(*it)]); // merge (move!) source data to list[alias]
+                        list.erase(get<0>(*it)); // -> delete the source entry (now empty after the above)
+                    }
+                    else // don't replace
+                    {
+                        std::copy(list[get<0>(*it)].begin(), list[get<0>(*it)].end(), // copy source data to list[alias]
+                            std::back_insert_iterator<SoundInfos>(list[alias]));
+                    }
+                }
+            } // end if source exists in the list
+        } // end iterate over the sound map
+    } // end we have a custom sound map
 
     // Sort SoundInfo elements inside the SoundInfos in our SoundInfoMap.
     for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it)
     {
-        sort (it->second.begin(), it->second.end(), cmp_si);
+        it->second.sort(cmp_si);
     }
 
     return list;
@@ -589,7 +602,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
             // info: it[0] ("first") = list name; it[1] ("second") = sound list
             first_in_multientry = true;
             f << "L[\"" << it->first << "\"]={";
-            for (SoundInfos::const_iterator it2 = it->second.begin(); it2 < it->second.end(); ++it2)
+            for (SoundInfos::const_iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2)
             {
                 // info: it2[0] = path; it2[1] = duration
                 if (first_in_multientry)
