@@ -1224,6 +1224,7 @@ int Launch_FullUpdate(const bool &open_ext)
     catch (...)
     {
         showError(99);
+        return -99;
     }
 }
 
