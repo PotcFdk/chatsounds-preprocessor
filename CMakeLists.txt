@@ -137,6 +137,10 @@ if (NOT FFMPEG_INTERNAL)
 	endif (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
 endif (NOT FFMPEG_INTERNAL)
 
+if (WIN32)
+	set (BCRYPT_LIBRARY "BCrypt")
+endif()
+
 add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
 
-target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} "Bcrypt")
+target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
