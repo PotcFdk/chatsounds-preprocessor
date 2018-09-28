@@ -139,4 +139,4 @@ endif (NOT FFMPEG_INTERNAL)
 
 add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
 
-target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY})
+target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} "Bcrypt")
