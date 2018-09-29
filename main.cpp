@@ -78,10 +78,10 @@ static const char
 
 struct SoundProperties {
     double duration = 0;
-    float rate = 0;
-    short channels = 0;
+    int sample_rate = 0;
+    int channels = 0;
 
-    SoundProperties(double _duration, float _rate, short _channels) : duration(_duration), rate(_rate), channels(_channels) {}
+    SoundProperties(double _duration, int _sample_rate, int _channels) : duration(_duration), sample_rate(_sample_rate), channels(_channels) {}
     bool operator<(const SoundProperties &b) const
     {
         return this->duration < b.duration;
@@ -130,7 +130,7 @@ void getdate ()
 
 ///
 
-const std::vector<unsigned int> valid_samplerates_ogg =
+const std::vector<int> valid_samplerates_ogg =
 {
     11025,
     22050,
@@ -350,7 +350,7 @@ inline boost::optional<SoundProperties> GetSoundProperties(const boost::filesyst
     return SoundProperties (
         static_cast<double>(duration)/AV_TIME_BASE, // duration in seconds
         _ps->streams[0]->codecpar->sample_rate, // sample rate
-        0 // channels
+        _ps->streams[0]->codecpar->channels // channels
     );
 }
 
@@ -402,7 +402,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             {
                 if (
                     ext != ".ogg"
-                    || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), properties->rate)
+                    || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), properties->sample_rate)
                         != valid_samplerates_ogg.end())
                 )
                 {
@@ -411,7 +411,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
                 }
                 else
                 {
-                    error_log << "[invalid sample rate] " << s_path << ": " << properties->rate << endl;
+                    error_log << "[invalid sample rate] " << s_path << ": " << properties->sample_rate << endl;
                 }
             }
             else
@@ -631,7 +631,8 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                 f << "{path=\"" << it2->first << "\",length="
                   << std::fixed
                   << std::setprecision(LIST_DURATION_PRECISION)
-                  << it2->second.duration << "}";
+                  << it2->second.duration << ",channels="
+                  << it2->second.channels << "}";
 
             }
             f << "}\n";
