@@ -76,13 +76,24 @@ static const char
     *RND_LINE = "                                                                      |/\r",
     *NULL_CHR = "\0";
 
+struct SoundProperties {
+    double duration = 0;
+    float rate = 0;
+    short channels = 0;
+
+    SoundProperties(double _duration, float _rate, short _channels) : duration(_duration), rate(_rate), channels(_channels) {}
+    bool operator<(const SoundProperties &b) const
+    {
+        return this->duration < b.duration;
+    }
+};
 
 typedef vector<boost::filesystem::path> PathList;
 
 typedef tuple<string, string, bool> SoundMapEntry;
 typedef list<SoundMapEntry> SoundMap;
 
-typedef pair<string, double> SoundInfo;
+typedef pair<string, SoundProperties> SoundInfo;
 typedef list<SoundInfo> SoundInfos;
 typedef map<string, SoundInfos> SoundInfoMap;
 
@@ -325,19 +336,22 @@ class CPP_AVFormatContext {
     }
 };
 
-inline double GetSoundDuration(const boost::filesystem::path& path, float *rate) // Gets the duration of a sound.
+inline boost::optional<SoundProperties> GetSoundProperties(const boost::filesystem::path& path) // Gets the duration of a sound.
 {
     CPP_AVFormatContext ps;
     AVFormatContext *_ps = ps.get();
     avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
-    if (!ps) return 0;
+    if (!ps) return boost::none;
 
     avformat_find_stream_info (_ps, NULL);
     int64_t duration = _ps->duration;
-    if (duration <= 0) return 0;
-    if (_ps->nb_streams != 1) return 0;
-    *rate = _ps->streams[0]->codecpar->sample_rate;
-    return static_cast<double>(duration)/AV_TIME_BASE;
+    if (duration <= 0) return boost::none;
+    if (_ps->nb_streams != 1) return boost::none;
+    return SoundProperties (
+        static_cast<double>(duration)/AV_TIME_BASE, // duration in seconds
+        _ps->streams[0]->codecpar->sample_rate, // sample rate
+        0 // channels
+    );
 }
 
 inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
@@ -384,20 +398,25 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
             string s_path = path.generic_string();
             boost::filesystem::path full_path = GetAbsolutePath(path);
 
-            float rate = 0;
-            double duration = GetSoundDuration(full_path, &rate);
-            if (
-                ext != ".ogg"
-                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), rate)
-                    != valid_samplerates_ogg.end())
-            )
+            if (boost::optional<SoundProperties> properties = GetSoundProperties(full_path))
             {
-                boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
-                return SoundInfo(s_path, duration);
+                if (
+                    ext != ".ogg"
+                    || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), properties->rate)
+                        != valid_samplerates_ogg.end())
+                )
+                {
+                    boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
+                    return SoundInfo(s_path, *properties);
+                }
+                else
+                {
+                    error_log << "[invalid sample rate] " << s_path << ": " << properties->rate << endl;
+                }
             }
             else
             {
-                error_log << "[invalid sample rate] " << s_path << ": " << rate << endl;
+                error_log << "[invalid file] " << s_path << endl;
             }
         }
     }
@@ -612,7 +631,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                 f << "{path=\"" << it2->first << "\",length="
                   << std::fixed
                   << std::setprecision(LIST_DURATION_PRECISION)
-                  << it2->second << "}";
+                  << it2->second.duration << "}";
 
             }
             f << "}\n";
