@@ -1,5 +1,5 @@
 # Chatsounds Preprocessor CMakeLists
-# (c) PotcFdk, 2017, BSD license
+# (c) PotcFdk, 2017 - 2018, BSD license
 # Other CMake modules are in ./cmake/ with their respective licenses.
 
 # Redistribution and use in source and binary forms, with or without
