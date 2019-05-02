@@ -1,15 +1,19 @@
 # Editor/IDE noise
-chatsounds-preprocessor.layout
-chatsounds-preprocessor.depend
-.kdev4
-chatsounds-preprocessor.kdev4
+/chatsounds-preprocessor.layout
+/chatsounds-preprocessor.depend
+/.kdev4
+/chatsounds-preprocessor.kdev4
+/.vscode
 
 # External Libraries / Header Files
-include/*
-lib/*
-libs/*
+/include/*
+/lib/*
+/libs/*
 
 # Build Folders
-obj
-bin
-build
+/obj
+/bin
+/build
+
+# Noisy development-related files
+/version.h
