@@ -207,7 +207,6 @@ void InitLibAV()
     if (!avformat_init)
     {
         cout << "Initializing libavformat..." << endl;
-        av_register_all();
         av_log_set_level(AV_LOG_ERROR);
         avformat_init = true;
     }
@@ -591,6 +590,8 @@ SoundInfoMap ProcessSoundFolder(const boost::filesystem::path& path)
 
 bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 {
+    if (list.empty()) return false;
+
     std::ofstream f(string(LISTPATH) + "/" + listname + ".lua", std::ofstream::binary);
     if (!f.fail())
     {
@@ -626,27 +627,13 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
     return false;
 }
 
-void UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
+bool UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
     SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t);
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
     UpdateGenerationActivity(-1, true);
     cout << (success ? " done" : " fail") << endl;
-}
-
-void ProcessSoundFolders(const boost::filesystem::path& path)
-{
-    const int d_count = getNumberOfDirectories(path);
-    int d_i = 1;
-
-    for (boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
-    {
-        if (is_directory(it->status()))
-        {
-            UpdateSoundFolder(it->path(), d_i, d_count);
-            d_i++;
-        }
-    }
+    return success;
 }
 
 void ClearFolder(const boost::filesystem::path& path)
@@ -664,9 +651,12 @@ void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t
 
     if (boost::filesystem::is_directory(soundsetpath)) // If the directory exists.
     {
-        UpdateSoundFolder(soundsetpath, folder_p, folder_t);
+        if (!UpdateSoundFolder(soundsetpath, folder_p, folder_t))
+        {
+            boost::filesystem::remove(list_path); // broken sound set
+        }
     }
-    else if(boost::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
+    else if (boost::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
     {
         DisplayGenerationActivity(false, name, folder_p, folder_t);
         boost::filesystem::remove(list_path);
@@ -1225,6 +1215,7 @@ int Launch_FullUpdate(const bool &open_ext)
     catch (...)
     {
         showError(99);
+        return -99;
     }
 }
 
