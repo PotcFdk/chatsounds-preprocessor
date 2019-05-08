@@ -1,5 +1,5 @@
 # Chatsounds Preprocessor CMakeLists
-# (c) PotcFdk, 2017 - 2018, BSD license
+# (c) PotcFdk, 2017 - 2019, BSD license
 # Other CMake modules are in ./cmake/ with their respective licenses.
 
 # Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,8 @@ message (STATUS "                      \\|      |_|                             
 set (CP_VERSION_MAJOR 0)
 set (CP_VERSION_MINOR 0)
 set (CP_VERSION_PATCH 0)
+
+set (Boost_NO_BOOST_CMAKE ON) # https://gitlab.kitware.com/cmake/cmake/issues/18865
 
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
