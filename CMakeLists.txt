@@ -27,7 +27,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (chatsounds-preprocessor)
 
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
 
@@ -102,7 +102,7 @@ configure_file (
 
 include_directories("${PROJECT_BINARY_DIR}")
 
-find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization program_options)
+find_package(Boost 1.50.0 REQUIRED COMPONENTS system serialization program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
 if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/include")
@@ -144,5 +144,4 @@ if (WIN32)
 endif()
 
 add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
-
-target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
+target_link_libraries(chatsounds-preprocessor stdc++fs ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})

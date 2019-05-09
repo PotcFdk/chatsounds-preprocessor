@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <iostream>
 #include <fstream>
+#include <experimental/filesystem>
 #include <iomanip>
 #include <chrono>
 
@@ -39,7 +40,6 @@
 #include <boost/version.hpp>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -53,6 +53,9 @@ extern "C" {
 
 using namespace std;
 
+namespace boost { // TODO: properly refactor code, this is poor man's compat aliasing
+    namespace filesystem = std::experimental::filesystem;
+};
 
 /// Definitions
 
@@ -82,7 +85,7 @@ typedef vector<boost::filesystem::path> PathList;
 typedef tuple<string, string, bool> SoundMapEntry;
 typedef list<SoundMapEntry> SoundMap;
 
-typedef pair<string, double> SoundInfo;
+typedef pair<boost::filesystem::path, double> SoundInfo;
 typedef list<SoundInfo> SoundInfos;
 typedef map<string, SoundInfos> SoundInfoMap;
 
@@ -200,6 +203,14 @@ struct match_char
         return x == c;
     }
 };
+
+boost::filesystem::path strip_root(const boost::filesystem::path& p) {
+    const boost::filesystem::path& parent_path = p.parent_path();
+    if (parent_path.empty() || parent_path.string() == "/")
+        return boost::filesystem::path();
+    else
+        return strip_root(parent_path) / p.filename();
+}
 
 bool avformat_init = false;
 void InitLibAV()
@@ -342,20 +353,20 @@ inline double GetSoundDuration(const boost::filesystem::path& path, float *rate)
 
 inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
 {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+/*#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
     boost::filesystem::path ret ("\\\\?\\");
     ret += boost::filesystem::absolute(path);
     ret.make_preferred();
     return ret;
-#else
+#else*/
     return boost::filesystem::absolute(path);
-#endif
+//#endif
 }
 
 boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
 {
     {
-        const string str_path = path.generic_string();
+        const string str_path = path.string();
 
         // Check path length
 
@@ -381,7 +392,6 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
 
         if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
         {
-            string s_path = path.generic_string();
             boost::filesystem::path full_path = GetAbsolutePath(path);
 
             float rate = 0;
@@ -392,12 +402,11 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
                     != valid_samplerates_ogg.end())
             )
             {
-                boost::algorithm::erase_head(s_path, SOUNDPATH_IGNORELEN);
-                return SoundInfo(s_path, duration);
+                return SoundInfo(strip_root(path), duration);
             }
             else
             {
-                error_log << "[invalid sample rate] " << s_path << ": " << rate << endl;
+                error_log << "[invalid sample rate] " << path << ": " << rate << endl;
             }
         }
     }
@@ -611,7 +620,10 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                 else
                     f << ',';
 
-                f << "{path=\"" << it2->first << "\",length="
+                string path = it2->first.string();
+                std::replace(path.begin(), path.end(), '\\', '/');
+
+                f << "{path=\"" << path << "\",length="
                   << std::fixed
                   << std::setprecision(LIST_DURATION_PRECISION)
                   << it2->second << "}";
@@ -708,7 +720,7 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
                     i++;
             }
 
-            list[path.filename().generic_string()] = true;
+            list[path.filename().string()] = true;
         }
     }
 
@@ -739,7 +751,7 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
                     i++;
             }
 
-            list[path.filename().generic_string()] = true;
+            list[path.filename().string()] = true;
         }
     }
 
@@ -840,15 +852,15 @@ SoundCache GenerateSoundCache()
                     {
                         if (boost::filesystem::is_regular_file(itg->status()))
                         {
-                            soundcache[itg->path().generic_string()]
-                                = boost::filesystem::last_write_time(GetAbsolutePath(itg->path()));
+                            soundcache[itg->path().string()]
+                                = boost::filesystem::last_write_time(GetAbsolutePath(itg->path())).time_since_epoch().count();
                         }
                     }
                 }
                 else
                 {
-                    soundcache[its->path().generic_string()]
-                        = boost::filesystem::last_write_time(GetAbsolutePath(its->path()));
+                    soundcache[its->path().string()]
+                        = boost::filesystem::last_write_time(GetAbsolutePath(its->path())).time_since_epoch().count();
                 }
             }
             cout << '\r' << "Scanning sounds... " << cnt++ << '/' << cnt_total << flush;
