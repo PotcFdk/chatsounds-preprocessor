@@ -91,8 +91,8 @@ else()
 endif()
 
 configure_file (
-	"${PROJECT_SOURCE_DIR}/version.h.in"
-	"${PROJECT_BINARY_DIR}/version.h"
+	"${PROJECT_SOURCE_DIR}/version.hpp.in"
+	"${PROJECT_BINARY_DIR}/version.hpp"
 )
 
 configure_file (
