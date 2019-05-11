@@ -24,10 +24,10 @@
 #include <cstdint>
 #include <iostream>
 #include <fstream>
-#include <experimental/filesystem>
 #include <iomanip>
 #include <chrono>
 
+#include "filesystem.hpp"
 #include "version.h"
 
 // List
@@ -53,10 +53,6 @@ extern "C" {
 
 using namespace std;
 
-namespace boost { // TODO: properly refactor code, this is poor man's compat aliasing
-    namespace filesystem = std::experimental::filesystem;
-};
-
 /// Definitions
 
 const int TERMINAL_WIDTH = S_TERMINAL_WIDTH;
@@ -80,12 +76,12 @@ static const char
     *NULL_CHR = "\0";
 
 
-typedef vector<boost::filesystem::path> PathList;
+typedef vector<std::filesystem::path> PathList;
 
 typedef tuple<string, string, bool> SoundMapEntry;
 typedef list<SoundMapEntry> SoundMap;
 
-typedef pair<boost::filesystem::path, double> SoundInfo;
+typedef pair<std::filesystem::path, double> SoundInfo;
 typedef list<SoundInfo> SoundInfos;
 typedef map<string, SoundInfos> SoundInfoMap;
 
@@ -176,7 +172,7 @@ public:
 
 ErrorLogger error_log;
 
-bool cmp_ifspath (const boost::filesystem::path& first, const boost::filesystem::path& second)
+bool cmp_ifspath (const std::filesystem::path& first, const std::filesystem::path& second)
 {
     return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
 }
@@ -204,10 +200,10 @@ struct match_char
     }
 };
 
-boost::filesystem::path strip_root(const boost::filesystem::path& p) {
-    const boost::filesystem::path& parent_path = p.parent_path();
+std::filesystem::path strip_root(const std::filesystem::path& p) {
+    const std::filesystem::path& parent_path = p.parent_path();
     if (parent_path.empty() || parent_path.string() == "/")
-        return boost::filesystem::path();
+        return std::filesystem::path();
     else
         return strip_root(parent_path) / p.filename();
 }
@@ -236,27 +232,27 @@ inline void interactive_wait_for_any_key()
 char * parent_dir = NULL;
 bool detectWorkingDir()
 {
-    if (boost::filesystem::is_directory("sound") && boost::filesystem::is_directory("lua"))
+    if (std::filesystem::is_directory("sound") && std::filesystem::is_directory("lua"))
         return false; // The current directory seems to be okay.
     else if (parent_dir) // Let's try the location of the executable, instead?
-        boost::filesystem::current_path(boost::filesystem::system_complete(parent_dir).remove_filename());
+        std::filesystem::current_path(std::filesystem::absolute(parent_dir).remove_filename());
         return true;
 }
 
-int getNumberOfDirectories (boost::filesystem::path path)
+int getNumberOfDirectories (std::filesystem::path path)
 {
-    return std::count_if (boost::filesystem::directory_iterator(path),
-        boost::filesystem::directory_iterator(),
-        bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
-            bind (&boost::filesystem::directory_entry::path, _1)));
+    return std::count_if (std::filesystem::directory_iterator(path),
+        std::filesystem::directory_iterator(),
+        bind (static_cast<bool(*)(const std::filesystem::path&)> (std::filesystem::is_directory),
+            bind (&std::filesystem::directory_entry::path, _1)));
 }
 
-int getNumberOfFiles (boost::filesystem::path path)
+int getNumberOfFiles (std::filesystem::path path)
 {
-    return std::count_if (boost::filesystem::directory_iterator(path),
-        boost::filesystem::directory_iterator(),
-        bind (static_cast<bool(*)(const boost::filesystem::path&)> (boost::filesystem::is_directory),
-            bind (&boost::filesystem::directory_entry::path, _1)));
+    return std::count_if (std::filesystem::directory_iterator(path),
+        std::filesystem::directory_iterator(),
+        bind (static_cast<bool(*)(const std::filesystem::path&)> (std::filesystem::is_directory),
+            bind (&std::filesystem::directory_entry::path, _1)));
 }
 
 int intDigits (int number)
@@ -336,7 +332,7 @@ class CPP_AVFormatContext {
     }
 };
 
-inline double GetSoundDuration(const boost::filesystem::path& path, float *rate) // Gets the duration of a sound.
+inline double GetSoundDuration(const std::filesystem::path& path, float *rate) // Gets the duration of a sound.
 {
     CPP_AVFormatContext ps;
     AVFormatContext *_ps = ps.get();
@@ -351,19 +347,19 @@ inline double GetSoundDuration(const boost::filesystem::path& path, float *rate)
     return static_cast<double>(duration)/AV_TIME_BASE;
 }
 
-inline boost::filesystem::path GetAbsolutePath(const boost::filesystem::path& path)
+inline std::filesystem::path GetAbsolutePath(const std::filesystem::path& path)
 {
 /*#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-    boost::filesystem::path ret ("\\\\?\\");
-    ret += boost::filesystem::absolute(path);
+    std::filesystem::path ret ("\\\\?\\");
+    ret += std::filesystem::absolute(path);
     ret.make_preferred();
     return ret;
 #else*/
-    return boost::filesystem::absolute(path);
+    return std::filesystem::absolute(path);
 //#endif
 }
 
-boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // Assembles an infolist about a sound.
+boost::optional<SoundInfo> GetSoundInfo(const std::filesystem::path& path) // Assembles an infolist about a sound.
 {
     {
         const string str_path = path.string();
@@ -392,7 +388,7 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
 
         if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
         {
-            boost::filesystem::path full_path = GetAbsolutePath(path);
+            std::filesystem::path full_path = GetAbsolutePath(path);
 
             float rate = 0;
             double duration = GetSoundDuration(full_path, &rate);
@@ -413,19 +409,19 @@ boost::optional<SoundInfo> GetSoundInfo(const boost::filesystem::path& path) // 
     return boost::none;
 }
 
-SoundInfos ProcessSoundGroup(const boost::filesystem::path& path)
+SoundInfos ProcessSoundGroup(const std::filesystem::path& path)
 {
     SoundInfos list;
 
     PathList paths;
-    copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
+    copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
     sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
     {
-        boost::filesystem::path sub_path = GetAbsolutePath((*it));
+        std::filesystem::path sub_path = GetAbsolutePath((*it));
 
-        if (boost::filesystem::is_regular_file(sub_path))
+        if (std::filesystem::is_regular_file(sub_path))
         {
             if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
             {
@@ -436,7 +432,7 @@ SoundInfos ProcessSoundGroup(const boost::filesystem::path& path)
     return list;
 }
 
-SoundMap ParseSoundMap(const boost::filesystem::path& path)
+SoundMap ParseSoundMap(const std::filesystem::path& path)
 {
     SoundMap soundmap;
 
@@ -486,7 +482,7 @@ SoundMap ParseSoundMap(const boost::filesystem::path& path)
     return soundmap;
 }
 
-SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
+SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
     SoundInfoMap list;
     SoundMap soundmap;
@@ -494,13 +490,13 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
     string _info_list_name;
 
     PathList paths;
-    copy(boost::filesystem::directory_iterator(path), boost::filesystem::directory_iterator(), back_inserter(paths));
+    copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
 
     int i = 1, total = paths.size();
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it, ++i)
     {
-        boost::filesystem::path sub_path = GetAbsolutePath(*it);
+        std::filesystem::path sub_path = GetAbsolutePath(*it);
 
         UpdateGenerationActivity(100 * i / total);
 
@@ -517,7 +513,7 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
                 list[_info_list_name].splice(list[_info_list_name].begin(), info);
             }
         }
-        else if (boost::filesystem::is_regular_file(sub_path)) // It's a single file.
+        else if (std::filesystem::is_regular_file(sub_path)) // It's a single file.
         {
             if (boost::iequals(sub_path.filename().string(), "map.txt"))
             {
@@ -589,7 +585,7 @@ SoundInfoMap ProcessSounds(const boost::filesystem::path& path) // Scans a subdi
     return list;
 }
 
-SoundInfoMap ProcessSoundFolder(const boost::filesystem::path& path)
+SoundInfoMap ProcessSoundFolder(const std::filesystem::path& path)
 {
     if (is_directory(path))
         return ProcessSounds(path);
@@ -639,7 +635,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
     return false;
 }
 
-bool UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p, const int& folder_t)
+bool UpdateSoundFolder(const std::filesystem::path& path, const int& folder_p, const int& folder_t)
 {
     SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t);
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
@@ -648,30 +644,30 @@ bool UpdateSoundFolder(const boost::filesystem::path& path, const int& folder_p,
     return success;
 }
 
-void ClearFolder(const boost::filesystem::path& path)
+void ClearFolder(const std::filesystem::path& path)
 {
-    for (boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+    for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it)
     {
-        boost::filesystem::remove_all(*it);
+        std::filesystem::remove_all(*it);
     }
 }
 
 void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t)
 {
     string list_path = string(LISTPATH) + "/" + name + ".lua";
-    boost::filesystem::path soundsetpath(string(SOUNDPATH) + "/" + name);
+    std::filesystem::path soundsetpath(string(SOUNDPATH) + "/" + name);
 
-    if (boost::filesystem::is_directory(soundsetpath)) // If the directory exists.
+    if (std::filesystem::is_directory(soundsetpath)) // If the directory exists.
     {
         if (!UpdateSoundFolder(soundsetpath, folder_p, folder_t))
         {
-            boost::filesystem::remove(list_path); // broken sound set
+            std::filesystem::remove(list_path); // broken sound set
         }
     }
-    else if (boost::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
+    else if (std::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
     {
         DisplayGenerationActivity(false, name, folder_p, folder_t);
-        boost::filesystem::remove(list_path);
+        std::filesystem::remove(list_path);
         cout << " done" << endl;
     }
 }
@@ -706,7 +702,7 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
 
         if (diff)
         {
-            boost::filesystem::path path(it->first);
+            std::filesystem::path path(it->first);
 
             int i = 0;
 
@@ -737,7 +733,7 @@ MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const Soun
 
         if (diff)
         {
-            boost::filesystem::path path(it->first);
+            std::filesystem::path path(it->first);
 
             int i = 0;
 
@@ -762,7 +758,7 @@ void AddMissingLists(MissingSoundCacheFiles& list, const SoundCache& soundcache)
 {
     for ( auto it = soundcache.begin(); it != soundcache.end(); ++it )
     {
-        boost::filesystem::path path(it->first);
+        std::filesystem::path path(it->first);
 
         int i = 0;
 
@@ -778,7 +774,7 @@ void AddMissingLists(MissingSoundCacheFiles& list, const SoundCache& soundcache)
 
         string name = path.filename().string();
         string list_path = string(LISTPATH) + "/" + name + ".lua";
-        if (!boost::filesystem::is_regular_file(list_path))
+        if (!std::filesystem::is_regular_file(list_path))
         {
             list[name] = true;
         }
@@ -791,8 +787,8 @@ void EraseSoundCache()
 {
     try
     {
-        if (boost::filesystem::exists(CACHE_PATH))
-            boost::filesystem::remove(CACHE_PATH);
+        if (std::filesystem::exists(CACHE_PATH))
+            std::filesystem::remove(CACHE_PATH);
     }
     catch (boost::archive::archive_exception e)
     {
@@ -802,7 +798,7 @@ void EraseSoundCache()
 
 SoundCache ReadSoundCache()
 {
-    if (!boost::filesystem::exists(CACHE_PATH))
+    if (!std::filesystem::exists(CACHE_PATH))
         throw 11;
 
     std::ifstream ifs(CACHE_PATH, ios::binary);
@@ -840,27 +836,27 @@ SoundCache GenerateSoundCache()
 
     int cnt = 1, cnt_total = getNumberOfDirectories(SOUNDPATH);
 
-    for (boost::filesystem::directory_iterator it(SOUNDPATH); it != boost::filesystem::directory_iterator(); ++it)
+    for (std::filesystem::directory_iterator it(SOUNDPATH); it != std::filesystem::directory_iterator(); ++it)
     {
         if (is_directory(it->status()))
         {
-            for (boost::filesystem::directory_iterator its(it->path()); its != boost::filesystem::directory_iterator(); ++its)
+            for (std::filesystem::directory_iterator its(it->path()); its != std::filesystem::directory_iterator(); ++its)
             {
                 if (is_directory(its->status()))
                 {
-                    for (boost::filesystem::directory_iterator itg(its->path()); itg != boost::filesystem::directory_iterator(); ++itg)
+                    for (std::filesystem::directory_iterator itg(its->path()); itg != std::filesystem::directory_iterator(); ++itg)
                     {
-                        if (boost::filesystem::is_regular_file(itg->status()))
+                        if (std::filesystem::is_regular_file(itg->status()))
                         {
                             soundcache[itg->path().string()]
-                                = boost::filesystem::last_write_time(GetAbsolutePath(itg->path())).time_since_epoch().count();
+                                = std::filesystem::last_write_time(GetAbsolutePath(itg->path())).time_since_epoch().count();
                         }
                     }
                 }
                 else
                 {
                     soundcache[its->path().string()]
-                        = boost::filesystem::last_write_time(GetAbsolutePath(its->path())).time_since_epoch().count();
+                        = std::filesystem::last_write_time(GetAbsolutePath(its->path())).time_since_epoch().count();
                 }
             }
             cout << '\r' << "Scanning sounds... " << cnt++ << '/' << cnt_total << flush;
@@ -895,19 +891,19 @@ void WriteSoundCache(SoundCache soundcache)
 
 // Cleanup
 
-void CleanupFolder(boost::filesystem::path path)
+void CleanupFolder(std::filesystem::path path)
 {
-    for (boost::filesystem::directory_iterator it(path); it != boost::filesystem::directory_iterator(); ++it)
+    for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it)
     {
         if (is_directory(it->status()))
         {
-            boost::filesystem::path pp = it->path();
+            std::filesystem::path pp = it->path();
 
             CleanupFolder(pp);
 
-            if(boost::filesystem::is_empty(pp))
+            if(std::filesystem::is_empty(pp))
             {
-                boost::filesystem::remove_all(pp);
+                std::filesystem::remove_all(pp);
             }
         }
     }
@@ -930,9 +926,9 @@ int DiffUpdate(const bool &open_ext)
 
     try
     {
-        boost::filesystem::remove(INVALID_FILE_LOG_PATH);
+        std::filesystem::remove(INVALID_FILE_LOG_PATH);
     }
-    catch (boost::filesystem::filesystem_error e)
+    catch (std::filesystem::filesystem_error e)
     {
         cout << ln_base << "Cannot reset invalid soundfile log: " << endl << "  " << e.what() << endl << endl;
     }
@@ -942,7 +938,7 @@ int DiffUpdate(const bool &open_ext)
     {
         CleanupFolder(SOUNDPATH);
     }
-    catch(boost::filesystem::filesystem_error e)
+    catch(std::filesystem::filesystem_error e)
     {
         cout << ln_base << "Boost exception: " << e.what() << endl;
         throw 1;
@@ -981,7 +977,7 @@ int DiffUpdate(const bool &open_ext)
         to_be_updated = GetModifiedSoundSets(soundcache, new_soundcache);
         AddMissingLists(to_be_updated, new_soundcache);
     }
-    catch (boost::filesystem::filesystem_error e)
+    catch (std::filesystem::filesystem_error e)
     {
         cout << "  ERR" << endl
              << "Boost exception: " << e.what() << endl;
@@ -999,7 +995,7 @@ int DiffUpdate(const bool &open_ext)
 
     invalid_file_log_close();
 
-    if (boost::filesystem::exists(INVALID_FILE_LOG_PATH))
+    if (std::filesystem::exists(INVALID_FILE_LOG_PATH))
     {
         cout << endl << "[Information] "
              "Some invalid files were found during the generation." << endl
@@ -1022,9 +1018,9 @@ int FullUpdate(const bool &open_ext)
 
     try
     {
-        boost::filesystem::remove(CACHE_PATH);
+        std::filesystem::remove(CACHE_PATH);
     }
-    catch (boost::filesystem::filesystem_error e)
+    catch (std::filesystem::filesystem_error e)
     {
         cout << ln_base << "Cannot reset cache: " << endl << "  " << e.what() << endl << endl;
     }
@@ -1034,7 +1030,7 @@ int FullUpdate(const bool &open_ext)
     {
         ClearFolder(LISTPATH);
     }
-    catch(boost::filesystem::filesystem_error e)
+    catch(std::filesystem::filesystem_error e)
     {
         cout << ln_base << "Boost exception: " << e.what() << endl;
         throw 3;
