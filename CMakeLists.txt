@@ -151,11 +151,7 @@ IF (NOT CAN_COMPILE_WITHOUT_STDCPPFS)
 	find_package(CPPexperimental)
 
 	if (NOT CPPEXPERIMENTAL_FOUND)
-		include(CheckCXXSymbolExists)
-		CHECK_CXX_SYMBOL_EXISTS(std::filesystem::path::preferred_separator filesystem cxx17fs)
-		if (NOT cxx17fs) # we're probably on GCC<8, add stdc++fs
-			SET(CPPEXPERIMENTAL_LIBRARIES "stdc++fs")
-		endif()
+		SET(CPPEXPERIMENTAL_LIBRARIES "stdc++fs")
 	endif()
 ENDIF()
 
