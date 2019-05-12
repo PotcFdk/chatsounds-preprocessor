@@ -1,5 +1,5 @@
 # Chatsounds Preprocessor CMakeLists
-# (c) PotcFdk, 2017, BSD license
+# (c) PotcFdk, 2017 - 2019, BSD license
 # Other CMake modules are in ./cmake/ with their respective licenses.
 
 # Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (chatsounds-preprocessor)
 
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+SET (CMAKE_CXX_STANDARD 17)
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
 
@@ -49,6 +50,8 @@ message (STATUS "                      \\|      |_|                             
 set (CP_VERSION_MAJOR 0)
 set (CP_VERSION_MINOR 0)
 set (CP_VERSION_PATCH 0)
+
+set (Boost_NO_BOOST_CMAKE ON) # https://gitlab.kitware.com/cmake/cmake/issues/18865
 
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
@@ -88,9 +91,11 @@ else()
 	SET (CP_HAS_VERSION_DISTRIBUTION false)
 endif()
 
+include_directories("${PROJECT_SOURCE_DIR}")
+
 configure_file (
-	"${PROJECT_SOURCE_DIR}/version.h.in"
-	"${PROJECT_BINARY_DIR}/version.h"
+	"${PROJECT_SOURCE_DIR}/version.hpp.in"
+	"${PROJECT_BINARY_DIR}/version.hpp"
 )
 
 configure_file (
@@ -100,7 +105,7 @@ configure_file (
 
 include_directories("${PROJECT_BINARY_DIR}")
 
-find_package(Boost 1.50.0 REQUIRED COMPONENTS system filesystem serialization program_options)
+find_package(Boost 1.50.0 REQUIRED COMPONENTS system serialization program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
 if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/libs/ffmpeg/include")
@@ -137,6 +142,18 @@ if (NOT FFMPEG_INTERNAL)
 	endif (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
 endif (NOT FFMPEG_INTERNAL)
 
-add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
+# https://stackoverflow.com/a/54290906
+try_compile(CAN_COMPILE_WITHOUT_STDCPPFS "${CMAKE_BINARY_DIR}/temp"
+	"${CMAKE_SOURCE_DIR}/cmake/filesystem.cpp"
+	CMAKE_FLAGS CMAKE_CXX_FLAGS)
 
-target_link_libraries(chatsounds-preprocessor ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY})
+IF (NOT CAN_COMPILE_WITHOUT_STDCPPFS)
+	find_package(CPPexperimental)
+
+	if (NOT CPPEXPERIMENTAL_FOUND)
+		SET(CPPEXPERIMENTAL_LIBRARIES "stdc++fs")
+	endif()
+ENDIF()
+
+add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
+target_link_libraries(chatsounds-preprocessor ${CPPEXPERIMENTAL_LIBRARIES} ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
