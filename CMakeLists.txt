@@ -27,6 +27,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (chatsounds-preprocessor)
 
+SET (CMAKE_CXX_STANDARD 17)
 SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
@@ -90,6 +91,8 @@ else()
 	SET (CP_HAS_VERSION_DISTRIBUTION false)
 endif()
 
+include_directories("${PROJECT_SOURCE_DIR}")
+
 configure_file (
 	"${PROJECT_SOURCE_DIR}/version.hpp.in"
 	"${PROJECT_BINARY_DIR}/version.hpp"
@@ -139,17 +142,18 @@ if (NOT FFMPEG_INTERNAL)
 	endif (NOT "${FFMPEG_INCLUDE_DIR_AVFORMAT}" STREQUAL "")
 endif (NOT FFMPEG_INTERNAL)
 
-find_package(CPPexperimental)
+# https://stackoverflow.com/a/54290906
+try_compile(CAN_COMPILE_WITHOUT_STDCPPFS "${CMAKE_BINARY_DIR}/temp"
+	"${CMAKE_SOURCE_DIR}/cmake/filesystem.cpp"
+	CMAKE_FLAGS CMAKE_CXX_FLAGS)
 
-if (NOT CPPEXPERIMENTAL_FOUND)
-	include(CheckCXXSymbolExists)
-	CHECK_CXX_SYMBOL_EXISTS(std::filesystem::path::preferred_separator filesystem cxx17fs)
-	if (NOT cxx17fs) # we're probably on GCC<8, add stdc++fs
+IF (NOT CAN_COMPILE_WITHOUT_STDCPPFS)
+	find_package(CPPexperimental)
+
+	if (NOT CPPEXPERIMENTAL_FOUND)
 		SET(CPPEXPERIMENTAL_LIBRARIES "stdc++fs")
 	endif()
-	# this would probably be a cleaner way to achieve this:
-	# https://stackoverflow.com/a/54290906
-endif()
+ENDIF()
 
 add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
 target_link_libraries(chatsounds-preprocessor ${CPPEXPERIMENTAL_LIBRARIES} ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
