@@ -145,7 +145,7 @@ endif (NOT FFMPEG_INTERNAL)
 # https://stackoverflow.com/a/54290906
 try_compile(CAN_COMPILE_WITHOUT_STDCPPFS "${CMAKE_BINARY_DIR}/temp"
 	"${CMAKE_SOURCE_DIR}/cmake/filesystem.cpp"
-	CMAKE_CXX_FLAGS)
+	CMAKE_FLAGS CMAKE_CXX_FLAGS)
 
 IF (NOT CAN_COMPILE_WITHOUT_STDCPPFS)
 	find_package(CPPexperimental)
