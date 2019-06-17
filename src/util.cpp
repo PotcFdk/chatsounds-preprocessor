@@ -23,3 +23,11 @@ std::optional<SoundDescriptor> GetSoundDescriptor (const std::filesystem::path& 
         Samplerate (_ps->streams[0]->codecpar->sample_rate)
     );
 }
+
+std::filesystem::path strip_root (const std::filesystem::path& p) {
+    const std::filesystem::path& parent_path = p.parent_path();
+    if (parent_path.empty() || parent_path.string() == "/")
+        return std::filesystem::path();
+    else
+        return strip_root(parent_path) / p.filename();
+}
