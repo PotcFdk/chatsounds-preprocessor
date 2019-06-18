@@ -1,15 +1,65 @@
+#ifndef CP_TYPES_HPP
+#define CP_TYPES_HPP
+
 #include <named_type.hpp>
+#include <filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+#include <vector>
+#include <tuple>
+#include <list>
+#include <map>
+#include <string>
 
-using Duration = fluent::NamedType<double, struct DurationParameter>;
-using Samplerate = fluent::NamedType<float, struct SammplerateParameter>;
+// libavformat
+extern "C" {
+#include <libavformat/avformat.h>
+}
 
-class SoundDescriptor {
+// Sound Properties
+
+using Duration = fluent::NamedType<double, struct DurationParameter, fluent::FunctionCallable, fluent::Printable>;
+using Samplerate = fluent::NamedType<float, struct SammplerateParameter, fluent::FunctionCallable, fluent::Printable>;
+
+class SoundProperties {
     public:
-        explicit SoundDescriptor (Duration d, Samplerate s) : duration_(d), samplerate_(s) {}
+        explicit SoundProperties (Duration d, Samplerate s) : duration_(d), samplerate_(s) {}
+
+        Duration getDuration() const { return duration_; }
+        Samplerate getSamplerate() const { return samplerate_; }
     private:
         Duration duration_;
         Samplerate samplerate_;
 };
+
+class SoundFileInfo : public SoundProperties {
+    public:
+        explicit SoundFileInfo (std::filesystem::path p, Duration d, Samplerate s) : path_(p), SoundProperties(d, s) {}
+        explicit SoundFileInfo (std::filesystem::path p, SoundProperties sp) : path_(p), SoundProperties(sp) {}
+
+        const bool operator < (const SoundFileInfo &other) const {
+            return boost::algorithm::ilexicographical_compare (path_.c_str(), other.getPath().c_str());
+        }
+
+        std::filesystem::path getPath() const { return path_; }
+    private:
+        std::filesystem::path path_;
+};
+
+using SoundName = fluent::NamedType<std::string, struct SoundNameParameter, fluent::Comparable, fluent::Printable>;
+
+typedef std::list<SoundFileInfo> SoundFileInfoList;
+typedef std::map<SoundName, SoundFileInfoList> SoundInfoMap;
+
+// Alias Map
+
+typedef std::tuple<SoundName, SoundName, bool> AliasMapEntry;
+typedef std::list<AliasMapEntry> AliasMap;
+
+// Misc / Generic
+
+typedef std::vector<std::filesystem::path> PathList;
+typedef std::unordered_map<std::string, int> SoundCache;
+typedef std::unordered_map<std::string, bool> MissingSoundCacheFiles;
 
 class CPP_AVFormatContext {
     AVFormatContext *ptr;
@@ -31,3 +81,5 @@ class CPP_AVFormatContext {
             avformat_close_input (&ptr);
     }
 };
+
+#endif

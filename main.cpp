@@ -21,6 +21,10 @@
 
 /// Includes
 
+#include <src/types.hpp>
+#include <src/error_logger.cpp>
+#include <src/util.cpp>
+
 #include <cstdint>
 #include <iostream>
 #include <fstream>
@@ -41,15 +45,9 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
-
-// libavformat
-extern "C" {
-#include <libavformat/avformat.h>
-}
 
 using namespace std;
 
@@ -75,18 +73,7 @@ static const char
     *RND_LINE = "                                                                      |/\r",
     *NULL_CHR = "\0";
 
-
-typedef vector<std::filesystem::path> PathList;
-
-typedef tuple<string, string, bool> SoundMapEntry;
-typedef list<SoundMapEntry> SoundMap;
-
-typedef pair<std::filesystem::path, double> SoundInfo;
-typedef list<SoundInfo> SoundInfos;
-typedef map<string, SoundInfos> SoundInfoMap;
-
-typedef unordered_map<string, int> SoundCache;
-typedef unordered_map<string, bool> MissingSoundCacheFiles;
+ErrorLogger error_log (INVALID_FILE_LOG_PATH);
 
 ///
 
@@ -125,62 +112,6 @@ const std::vector<unsigned int> valid_samplerates_ogg =
     44100,
 };
 
-ofstream invalid_file_log;
-void invalid_file_log_open()
-{
-    if (!invalid_file_log.is_open())
-        invalid_file_log.open(INVALID_FILE_LOG_PATH);
-}
-void invalid_file_log_close()
-{
-    invalid_file_log.close();
-}
-
-class ErrorLogger
-{
-private:
-    bool in_line = true;
-
-public:
-    void reset () { in_line = true; }
-
-    typedef std::basic_ostream<char, std::char_traits<char> > CoutType;
-    typedef CoutType& (*StandardEndLine)(CoutType&);
-
-    ErrorLogger& operator << (StandardEndLine manip)
-    {
-        invalid_file_log_open();
-        invalid_file_log << std::endl;
-        std::cout << std::endl;
-        in_line = false;
-        return *this;
-    }
-
-    template <typename T> ErrorLogger& operator << (const T& value)
-    {
-        invalid_file_log_open();
-        invalid_file_log << value;
-        if (in_line)
-        {
-            std::cout << std::endl;
-            in_line = false;
-        }
-        std::cout << value;
-        return *this;
-    }
-};
-
-ErrorLogger error_log;
-
-bool cmp_ifspath (const std::filesystem::path& first, const std::filesystem::path& second)
-{
-    return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
-}
-
-bool cmp_si (const SoundInfo& first, const SoundInfo& second)
-{
-    return boost::algorithm::ilexicographical_compare(first.first.c_str(), second.first.c_str());
-}
 
 struct is_upper
 {
@@ -200,38 +131,17 @@ struct match_char
     }
 };
 
-std::filesystem::path strip_root(const std::filesystem::path& p) {
-    const std::filesystem::path& parent_path = p.parent_path();
-    if (parent_path.empty() || parent_path.string() == "/")
-        return std::filesystem::path();
-    else
-        return strip_root(parent_path) / p.filename();
-}
-
-bool avformat_init = false;
-void InitLibAV()
-{
-    if (!avformat_init)
-    {
-        cout << "Initializing libavformat..." << endl;
-        av_log_set_level(AV_LOG_ERROR);
-        avformat_init = true;
-    }
-}
 
 bool is_interactive = true;
-inline void interactive_wait_for_any_key()
-{
-    if (is_interactive)
-    {
+inline void interactive_wait_for_any_key() {
+    if (is_interactive) {
         cout << endl << "Press ENTER to exit..." << endl;
         cin.get();
     }
 }
 
 char * parent_dir = NULL;
-bool detectWorkingDir()
-{
+bool detectWorkingDir() {
     if (std::filesystem::is_directory("sound") && std::filesystem::is_directory("lua"))
         return false; // The current directory seems to be okay.
     else if (parent_dir) // Let's try the location of the executable, instead?
@@ -239,21 +149,8 @@ bool detectWorkingDir()
         return true;
 }
 
-int getNumberOfDirectories (std::filesystem::path path)
-{
-    return std::count_if (std::filesystem::directory_iterator(path),
-        std::filesystem::directory_iterator(),
-        bind (static_cast<bool(*)(const std::filesystem::path&)> (std::filesystem::is_directory),
-            bind (&std::filesystem::directory_entry::path, _1)));
-}
 
-int getNumberOfFiles (std::filesystem::path path)
-{
-    return std::count_if (std::filesystem::directory_iterator(path),
-        std::filesystem::directory_iterator(),
-        bind (static_cast<bool(*)(const std::filesystem::path&)> (std::filesystem::is_directory),
-            bind (&std::filesystem::directory_entry::path, _1)));
-}
+
 
 int intDigits (int number)
 {
@@ -311,55 +208,19 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
     __gen_activity_last     = __gen_activity_rst;
 }
 
-class CPP_AVFormatContext {
-    AVFormatContext *ptr;
-    public: CPP_AVFormatContext() {
-        ptr = avformat_alloc_context();
-        if (ptr == NULL) {
-            throw 51;
-        }
-    }
-    bool operator !() const { return ptr == NULL; }
-    AVFormatContext* get() { return ptr; };
-    AVFormatContext** get_ptr() { return &ptr; };
-    CPP_AVFormatContext(CPP_AVFormatContext&&) = default;
-    CPP_AVFormatContext& operator=(CPP_AVFormatContext&&) = default;
-    CPP_AVFormatContext(const CPP_AVFormatContext&) = delete;
-    CPP_AVFormatContext& operator=(const CPP_AVFormatContext&) = delete;
-    ~CPP_AVFormatContext() {
-        if (ptr)
-            avformat_close_input (&ptr);
-    }
-};
 
-inline double GetSoundDuration(const std::filesystem::path& path, float *rate) // Gets the duration of a sound.
-{
-    CPP_AVFormatContext ps;
-    AVFormatContext *_ps = ps.get();
-    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
-    if (!ps) return 0;
-
-    avformat_find_stream_info (_ps, NULL);
-    int64_t duration = _ps->duration;
-    if (duration <= 0) return 0;
-    if (_ps->nb_streams != 1) return 0;
-    *rate = _ps->streams[0]->codecpar->sample_rate;
-    return static_cast<double>(duration)/AV_TIME_BASE;
-}
-
-inline std::filesystem::path GetAbsolutePath(const std::filesystem::path& path)
-{
+//inline std::filesystem::path GetAbsolutePath(const std::filesystem::path& path) {
 /*#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
     std::filesystem::path ret ("\\\\?\\");
     ret += std::filesystem::absolute(path);
     ret.make_preferred();
     return ret;
 #else*/
-    return std::filesystem::absolute(path);
+    //return std::filesystem::absolute(path);
 //#endif
-}
+//}
 
-boost::optional<SoundInfo> GetSoundInfo(const std::filesystem::path& path) // Assembles an infolist about a sound.
+boost::optional<SoundFileInfo> GetSoundFileInfo (const std::filesystem::path& path) // Assembles an infolist about a sound.
 {
     {
         const string str_path = path.string();
@@ -388,55 +249,51 @@ boost::optional<SoundInfo> GetSoundInfo(const std::filesystem::path& path) // As
 
         if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
         {
-            std::filesystem::path full_path = GetAbsolutePath(path);
+            std::filesystem::path full_path = std::filesystem::absolute(path);
 
-            float rate = 0;
-            double duration = GetSoundDuration(full_path, &rate);
-            if (
-                ext != ".ogg"
-                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), rate)
+            std::optional<SoundProperties> properties = GetSoundProperties (full_path);
+
+            if (properties.has_value() && ext != ".ogg"
+                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), properties->getSamplerate())
                     != valid_samplerates_ogg.end())
             )
             {
-                return SoundInfo(strip_root(path), duration);
-            }
-            else
-            {
-                error_log << "[invalid sample rate] " << path << ": " << rate << endl;
+                return SoundFileInfo(strip_root(path), properties.value());
+            } else if (properties.has_value()) {
+                error_log << "[invalid sample rate] " << path << ": " << properties->getSamplerate() << endl;
+            } else {
+                error_log << "[invalid file] " << path << endl;
             }
         }
     }
     return boost::none;
 }
 
-SoundInfos ProcessSoundGroup(const std::filesystem::path& path)
+SoundFileInfoList ProcessSoundGroup (const std::filesystem::path& path)
 {
-    SoundInfos list;
+    SoundFileInfoList list;
 
     PathList paths;
     copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
     sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
 
-    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it)
-    {
-        std::filesystem::path sub_path = GetAbsolutePath((*it));
+    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it) {
+        std::filesystem::path sub_path = std::filesystem::absolute((*it));
 
-        if (std::filesystem::is_regular_file(sub_path))
-        {
-            if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
-            {
-                list.push_back(*soundinfo);
+        if (std::filesystem::is_regular_file(sub_path)) {
+            if (boost::optional<SoundFileInfo> soundfileinfo = GetSoundFileInfo(*it)) {
+                list.push_back(*soundfileinfo);
             }
         }
     }
     return list;
 }
 
-SoundMap ParseSoundMap(const std::filesystem::path& path)
+AliasMap ParseAliasMap (const std::filesystem::path& path)
 {
-    SoundMap soundmap;
+    AliasMap aliasmap;
 
-    std::ifstream f(path.string());
+    std::ifstream f (path);
 
     if (!f.fail())
     {
@@ -472,22 +329,20 @@ SoundMap ParseSoundMap(const std::filesystem::path& path)
                         }
                     }
 
-                    soundmap.emplace_back(make_tuple(source, alias, replace));
+                    aliasmap.emplace_back(make_tuple(source, alias, replace));
                 }
             }
         }
         f.close();
     }
 
-    return soundmap;
+    return aliasmap;
 }
 
-SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
+SoundInfoMap ProcessSounds (const std::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {
     SoundInfoMap list;
-    SoundMap soundmap;
-
-    string _info_list_name;
+    AliasMap aliasmap;
 
     PathList paths;
     copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
@@ -496,14 +351,14 @@ SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdire
 
     for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it, ++i)
     {
-        std::filesystem::path sub_path = GetAbsolutePath(*it);
+        std::filesystem::path sub_path = std::filesystem::absolute (*it);
 
         UpdateGenerationActivity(100 * i / total);
 
         if (is_directory(sub_path)) // It's a sound group.
         {
-            SoundInfos info = ProcessSoundGroup(*it);
-            _info_list_name = boost::algorithm::to_lower_copy(it->filename().string());
+            SoundFileInfoList info = ProcessSoundGroup(*it);
+            SoundName _info_list_name (boost::algorithm::to_lower_copy (it->filename().string()));
             if (!list.count(_info_list_name))
             { // Doesn't exist, just add it.
                 list[_info_list_name] = info;
@@ -517,17 +372,17 @@ SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdire
         {
             if (boost::iequals(sub_path.filename().string(), "map.txt"))
             {
-                soundmap = ParseSoundMap(sub_path);
+                aliasmap = ParseAliasMap (sub_path);
             }
             else
             {
-                if (boost::optional<SoundInfo> soundinfo = GetSoundInfo(*it))
+                if (boost::optional<SoundFileInfo> soundinfo = GetSoundFileInfo (*it))
                 {
-                    SoundInfo info = *soundinfo;
-                    _info_list_name = boost::algorithm::to_lower_copy(it->filename().replace_extension("").string());
+                    SoundFileInfo info = *soundinfo;
+                    SoundName _info_list_name (boost::algorithm::to_lower_copy (it->filename().replace_extension("").string()));
                     if (!list.count (_info_list_name))
                     { // Doesn't exist, just add it.
-                        list[_info_list_name] = SoundInfos {info};
+                        list[_info_list_name] = SoundFileInfoList {info};
                     }
                     else
                     { // Exists, add it.
@@ -538,14 +393,14 @@ SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdire
         }
     }
 
-    if (soundmap.size() > 0) // we have a custom sound map
+    if (aliasmap.size() > 0) // we have a custom sound map
     {
-        for (SoundMap::iterator it = soundmap.begin(); it != soundmap.end(); ++it) // iterate over the sound map
+        for (AliasMap::iterator it = aliasmap.begin(); it != aliasmap.end(); ++it) // iterate over the sound map
         {
             // Remember: *it = [ ( source, alias, (bool) replace ) ]
             if (list.count(get<0>(*it))) // if source exists in the list
             {
-                string alias = get<1>(*it);
+                SoundName alias (get<1>(*it));
 
                 if (!list.count(alias)) // the target / aliased entry doesn't exist in the sound set
                 {
@@ -569,7 +424,7 @@ SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdire
                     else // don't replace
                     {
                         std::copy(list[get<0>(*it)].begin(), list[get<0>(*it)].end(), // copy source data to list[alias]
-                            std::back_insert_iterator<SoundInfos>(list[alias]));
+                            std::back_insert_iterator<SoundFileInfoList>(list[alias]));
                     }
                 }
             } // end if source exists in the list
@@ -577,9 +432,8 @@ SoundInfoMap ProcessSounds(const std::filesystem::path& path) // Scans a subdire
     } // end we have a custom sound map
 
     // Sort SoundInfo elements inside the SoundInfos in our SoundInfoMap.
-    for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it)
-    {
-        it->second.sort(cmp_si);
+    for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it) {
+        it->second.sort(cmp_sfi);
     }
 
     return list;
@@ -608,7 +462,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
             // info: it[0] ("first") = list name; it[1] ("second") = sound list
             first_in_multientry = true;
             f << "L[\"" << it->first << "\"]={";
-            for (SoundInfos::const_iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2)
+            for (SoundFileInfoList::const_iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2)
             {
                 // info: it2[0] = path; it2[1] = duration
                 if (first_in_multientry)
@@ -616,13 +470,13 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
                 else
                     f << ',';
 
-                string path = it2->first.string();
+                string path = it2->getPath().string();
                 std::replace(path.begin(), path.end(), '\\', '/');
 
                 f << "{path=\"" << path << "\",length="
                   << std::fixed
                   << std::setprecision(LIST_DURATION_PRECISION)
-                  << it2->second << "}";
+                  << it2->getDuration() << "}";
 
             }
             f << "}\n";
@@ -635,8 +489,7 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
     return false;
 }
 
-bool UpdateSoundFolder(const std::filesystem::path& path, const int& folder_p, const int& folder_t)
-{
+bool UpdateSoundFolder(const std::filesystem::path& path, const int& folder_p, const int& folder_t) {
     SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t);
     bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
     UpdateGenerationActivity(-1, true);
@@ -644,46 +497,37 @@ bool UpdateSoundFolder(const std::filesystem::path& path, const int& folder_p, c
     return success;
 }
 
-void ClearFolder(const std::filesystem::path& path)
-{
-    for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it)
-    {
+void ClearFolder(const std::filesystem::path& path) {
+    for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it) {
         std::filesystem::remove_all(*it);
     }
 }
 
-void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t)
-{
+void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t) {
     string list_path = string(LISTPATH) + "/" + name + ".lua";
     std::filesystem::path soundsetpath(string(SOUNDPATH) + "/" + name);
 
-    if (std::filesystem::is_directory(soundsetpath)) // If the directory exists.
-    {
-        if (!UpdateSoundFolder(soundsetpath, folder_p, folder_t))
-        {
+    if (std::filesystem::is_directory(soundsetpath)) { // If the directory exists.
+        if (!UpdateSoundFolder(soundsetpath, folder_p, folder_t)) {
             std::filesystem::remove(list_path); // broken sound set
         }
     }
-    else if (std::filesystem::is_regular_file(list_path)) // If a related (unneeded/outdated!) sound list exists.
-    {
+    else if (std::filesystem::is_regular_file(list_path)) { // If a related (unneeded/outdated!) sound list exists.
         DisplayGenerationActivity(false, name, folder_p, folder_t);
         std::filesystem::remove(list_path);
         cout << " done" << endl;
     }
 }
 
-void UpdateSoundSets(const unordered_map<string, bool>& SoundCacheDiff)
-{
+void UpdateSoundSets(const unordered_map<string, bool>& SoundCacheDiff) {
     int i = 1;
-    for(auto it = SoundCacheDiff.begin(); it != SoundCacheDiff.end(); ++it)
-    {
+    for(auto it = SoundCacheDiff.begin(); it != SoundCacheDiff.end(); ++it) {
         UpdateSoundSet(it->first, i, SoundCacheDiff.size());
         i++;
     }
 }
 
-MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const SoundCache& cache2)
-{
+MissingSoundCacheFiles GetModifiedSoundSets(const SoundCache& cache1, const SoundCache& cache2) {
     unordered_map<string, bool> list;
     bool diff;
 
@@ -849,14 +693,14 @@ SoundCache GenerateSoundCache()
                         if (std::filesystem::is_regular_file(itg->status()))
                         {
                             soundcache[itg->path().string()]
-                                = std::filesystem::last_write_time(GetAbsolutePath(itg->path())).time_since_epoch().count();
+                                = std::filesystem::last_write_time(std::filesystem::absolute(itg->path())).time_since_epoch().count();
                         }
                     }
                 }
                 else
                 {
                     soundcache[its->path().string()]
-                        = std::filesystem::last_write_time(GetAbsolutePath(its->path())).time_since_epoch().count();
+                        = std::filesystem::last_write_time(std::filesystem::absolute(its->path())).time_since_epoch().count();
                 }
             }
             cout << '\r' << "Scanning sounds... " << cnt++ << '/' << cnt_total << flush;
@@ -920,7 +764,6 @@ int DiffUpdate(const bool &open_ext)
     std::chrono::high_resolution_clock::time_point time_begin = std::chrono::high_resolution_clock::now();
 
     cout << ln_base;
-    InitLibAV();
 
     cout << ln_base << "Resetting invalid soundfile log..." << endl;
 
@@ -992,8 +835,6 @@ int DiffUpdate(const bool &open_ext)
     std::chrono::duration<double> duration (std::chrono::high_resolution_clock::now() - time_begin);
 
     cout << "List generation has finished. Took " << duration.count() << " seconds." << endl;
-
-    invalid_file_log_close();
 
     if (std::filesystem::exists(INVALID_FILE_LOG_PATH))
     {
@@ -1303,8 +1144,6 @@ int main(int argc, char* argv[])
     }
     else
         return Launch_DiffUpdate(open_ext);
-
-    invalid_file_log_close();
 
     return 0;
 }
