@@ -3,6 +3,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#include <boost/algorithm/string.hpp>
 #include <filesystem.hpp>
 #include "types.hpp"
 
@@ -30,4 +31,9 @@ std::filesystem::path strip_root (const std::filesystem::path& p) {
         return std::filesystem::path();
     else
         return strip_root(parent_path) / p.filename();
+}
+
+bool cmp_ifspath (const std::filesystem::path& first, const std::filesystem::path& second)
+{
+    return boost::algorithm::ilexicographical_compare(first.c_str(), second.c_str());
 }
