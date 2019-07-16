@@ -1,8 +1,44 @@
 #include <version.hpp>
+#include <iostream>
+
+using std::cout, std::endl;
+
+static const char
+    *EXT_LINE = "                                                                      | |",
+    *RXT_LINE = "                                                                      | |\r",
+    *END_LINE = "                                                                      |/",
+    *RND_LINE = "                                                                      |/\r",
+    *NULL_CHR = "\0";
+
+unsigned short month, day, year;
+
+const char *months[] = {
+    "Jan", "Feb", "Mar", "Apr", "May",
+    "Jun", "Jul", "Aug","Sep", "Oct", "Nov", "Dec"
+};
+
+void readdate ()
+{
+    char temp [] = __DATE__;
+    unsigned char i;
+
+    year = atoi(temp + 7);
+    *(temp + 6) = 0;
+    day = atoi(temp + 4);
+    *(temp + 3) = 0;
+    for (i = 0; i < 12; i++)
+    {
+        if (!strcmp(temp, months[i]))
+        {
+            month = i + 1;
+            return;
+        }
+    }
+}
 
 bool print_topinfo()
 {
-    getdate();
+    readdate();
 
     const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
         + intDigits(Version::MAJOR)

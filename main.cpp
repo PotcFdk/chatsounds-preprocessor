@@ -4,20 +4,7 @@
 
 // Settings
 
-#define S_TERMINAL_WIDTH 80
-
-#define S_CACHE_VERSION 1
-#define S_CACHE_PATH "chatsounds-preprocessor-cache"
-#define S_INVALID_FILE_LOG_PATH "invalid-soundfiles.txt"
-
-#define S_LISTPATH "lua/chatsounds/lists_nosend"
-#define S_SOUNDPATH "sound/chatsounds/autoadd"
-#define S_SOUNDPATH_IGNORELEN 6 // Ignores "sound/"
-#define S_SOUNDPATH_MAXLEN 150 // Arbitrary limit enforced by Garry's Mod
-
-#define LIST_DURATION_PRECISION 3 // Precision of the sound lengths in the list e.g. (3.141) -> 3
-
-#define S_BUGTRACKER_LINK "https://github.com/PotcFdk/chatsounds-preprocessor/issues"
+#include <src/constants.hpp>
 
 /// Includes
 
@@ -54,94 +41,15 @@
 
 using namespace std;
 
-/// Definitions
-
-const int TERMINAL_WIDTH = S_TERMINAL_WIDTH;
-
-const unsigned int CACHE_VERSION = S_CACHE_VERSION;
-const char * const CACHE_PATH = S_CACHE_PATH;
-const char * const INVALID_FILE_LOG_PATH = S_INVALID_FILE_LOG_PATH;
-
-const char * const LISTPATH  = S_LISTPATH;
-const char * const SOUNDPATH = S_SOUNDPATH;
-const uint_fast8_t SOUNDPATH_IGNORELEN = S_SOUNDPATH_IGNORELEN;
-const uint_fast8_t SOUNDPATH_MAXLEN = S_SOUNDPATH_MAXLEN;
-
-const char * const BUGTRACKER_LINK = S_BUGTRACKER_LINK;
-
-static const char
-    *EXT_LINE = "                                                                      | |",
-    *RXT_LINE = "                                                                      | |\r",
-    *END_LINE = "                                                                      |/",
-    *RND_LINE = "                                                                      |/\r",
-    *NULL_CHR = "\0";
 
 ErrorLogger error_log (INVALID_FILE_LOG_PATH);
 
-///
-
-unsigned short month, day, year;
-
-const char *months[] = {
-    "Jan", "Feb", "Mar", "Apr", "May",
-    "Jun", "Jul", "Aug","Sep", "Oct", "Nov", "Dec"
-};
-
-void getdate ()
-{
-    char temp [] = __DATE__;
-    unsigned char i;
-
-    year = atoi(temp + 7);
-    *(temp + 6) = 0;
-    day = atoi(temp + 4);
-    *(temp + 3) = 0;
-    for (i = 0; i < 12; i++)
-    {
-        if (!strcmp(temp, months[i]))
-        {
-            month = i + 1;
-            return;
-        }
-    }
-}
 
 ///
 
-const std::vector<unsigned int> valid_samplerates_ogg =
-{
-    11025,
-    22050,
-    44100,
-};
 
 
-struct is_upper
-{
-    bool operator() (int value)
-    {
-        return ::isupper ((unsigned char) value);
-    }
-};
 
-struct match_char
-{
-    char c;
-    match_char(char c) : c(c) {}
-    bool operator()(char x) const
-    {
-        return x == c;
-    }
-};
-
-
-bool is_interactive = true;
-inline void interactive_wait_for_any_key() {
-    if (is_interactive) {
-        cout << endl << "Press ENTER to exit..." << endl;
-        cin.get();
-    }
-}
 
 char * parent_dir = NULL;
 bool detectWorkingDir() {
@@ -153,136 +61,6 @@ bool detectWorkingDir() {
 }
 
 
-Preprocessor preprocessor;
-
-
-
-int intDigits (int number)
-{
-    int digits = 0;
-    while (number)
-    {
-        number /= 10;
-        ++digits;
-    }
-    return digits;
-}
-
-void DisplayGenerationActivity(const bool& added, std::string name, const int& folder_p, const int& folder_t, int progress = -1)
-{
-    // TERMINAL_WIDTH - "() " - STATUS - #P - #N - '/' - LASTCHR
-    unsigned short shortn = TERMINAL_WIDTH - 3 - 4 - intDigits(folder_p) - intDigits(folder_t) - 1 - 2;
-
-    cout << '(' << folder_p << '/' << folder_t << ") "
-         << (name.size() >= shortn ? "..." + name.substr(name.size() - shortn + 3) : name + string(shortn - name.size(), ' '));
-
-    if (progress != 100 && progress != -1)
-        cout << ' ' << progress << " %";
-
-    error_log.reset();
-}
-
-bool __gen_activity_added;
-std::string __gen_activity_name;
-int __gen_activity_folder_p, __gen_activity_folder_t;
-
-std::chrono::high_resolution_clock::time_point __gen_activity_rst  = std::chrono::high_resolution_clock::now();
-std::chrono::high_resolution_clock::time_point __gen_activity_last = std::chrono::high_resolution_clock::now();
-std::chrono::duration<double> duration;
-
-inline void UpdateGenerationActivity(int progress = -1, bool force = false)
-{
-    static std::chrono::high_resolution_clock::time_point now;
-    now = std::chrono::high_resolution_clock::now();
-
-    duration = now - __gen_activity_last;
-    if (duration.count() > 0.5 || force)
-    {
-        cout << '\r';
-        DisplayGenerationActivity(__gen_activity_added, __gen_activity_name, __gen_activity_folder_p, __gen_activity_folder_t, progress);
-        __gen_activity_last = now;
-    }
-}
-
-void SetGenerationActivityParameters(const bool& added, std::string name, const int& folder_p, const int& folder_t)
-{
-    __gen_activity_added    = added;
-    __gen_activity_name     = name;
-    __gen_activity_folder_p = folder_p;
-    __gen_activity_folder_t = folder_t;
-    __gen_activity_last     = __gen_activity_rst;
-}
-
-
-
-boost::optional<SoundFileInfo> GetSoundFileInfo (const std::filesystem::path& path) // Assembles an infolist about a sound.
-{
-    {
-        const string str_path = path.string();
-
-        // Check path length
-
-        if (str_path.length() > SOUNDPATH_MAXLEN)
-        {
-            error_log << "[too long path] " << str_path << endl;
-            return boost::none;
-        }
-
-        // Check if path is all lowercase.
-
-        else if (any_of(str_path.begin(), str_path.end(), is_upper()))
-        {
-            error_log << "[non-lowercase path] " << str_path << endl;
-            return boost::none;
-        }
-    }
-
-    if (path.has_extension())
-    {
-        string ext = path.extension().string();
-        boost::algorithm::to_lower(ext);
-
-        if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
-        {
-            std::filesystem::path full_path = std::filesystem::absolute(path);
-
-            std::optional<SoundProperties> properties = GetSoundProperties (full_path);
-
-            if (properties.has_value() && ext != ".ogg"
-                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), properties->getSamplerate())
-                    != valid_samplerates_ogg.end())
-            )
-            {
-                return SoundFileInfo(strip_root(path), properties.value());
-            } else if (properties.has_value()) {
-                error_log << "[invalid sample rate] " << path << ": " << properties->getSamplerate() << endl;
-            } else {
-                error_log << "[invalid file] " << path << endl;
-            }
-        }
-    }
-    return boost::none;
-}
-
-SoundFileInfoList ProcessSoundGroup (const std::filesystem::path& path)
-{
-    SoundFileInfoList list;
-
-    PathList paths;
-    copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
-    sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
-
-    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it) {
-        std::filesystem::path sub_path = std::filesystem::absolute((*it));
-
-        if (std::filesystem::is_regular_file(sub_path)) {
-            if (boost::optional<SoundFileInfo> soundfileinfo = GetSoundFileInfo(*it)) {
-                list.push_back(*soundfileinfo);
-            }
-        }
-    }
-    return list;
-}
 
 bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 {
@@ -745,8 +523,6 @@ int Launch_FullUpdate(const bool &open_ext)
         return -99;
     }
 }
-
-
 
 
 pair<string, string> win_help_cmd_param(const string& s)

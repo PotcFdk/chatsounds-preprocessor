@@ -1,17 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <src/util.cpp>
-
-SCENARIO ("GetSoundProperties behaves correctly", "[util]" ) {
-    GIVEN ("a path") {
-        WHEN ("the path is invalid") {
-            std::filesystem::path path ("NONEXISTINGFILE.NAME");
-            THEN ("no value is returned") {
-                REQUIRE_FALSE (GetSoundProperties(path).has_value());
-            }
-        }
-    }
-}
+#include <src/util.hpp>
 
 SCENARIO ("strip_root behaves correctly", "[util]" ) {
     GIVEN ("a nested path") {
@@ -85,7 +74,7 @@ SCENARIO ("cmp_ifspath behaves correctly", "[util]" ) {
     }
 }
 
-SCENARIO ("getNumberOfDirectories") {
+SCENARIO ("getNumberOfDirectories behaves correctly", "[util]") {
     GIVEN ("the test path") {
         std::filesystem::path path ("temp");
         THEN ("the correct number of directories is returned") {
@@ -94,7 +83,7 @@ SCENARIO ("getNumberOfDirectories") {
     }
 }
 
-SCENARIO ("cmp_sfi behaves correctly", "[util]" ) {
+SCENARIO ("cmp_sfi behaves correctly", "[util]") {
     GIVEN ("two SoundFileInfo objects") {
         SoundFileInfo o1 ("apath1", Duration(0), Samplerate(0));
         WHEN ("the paths are both identical") {
@@ -139,6 +128,82 @@ SCENARIO ("cmp_sfi behaves correctly", "[util]" ) {
             REQUIRE (paths[2] == "apath2/file.dat");
             REQUIRE (paths[3] == "aPath3/file.dat");
             REQUIRE (paths[4] == "ApaTh4/file.dat");
+        }
+    }
+}
+
+SCENARIO ("is_upper behaves correctly", "[utils]") {
+    GIVEN ("is_upper") {
+        is_upper o;
+        WHEN ("a character is lowercase") {
+            char c = 'a';
+            THEN ("is_upper returns false") {
+                REQUIRE (o(c) == false);
+            }
+        }
+        WHEN ("a character is uppercase") {
+            char c = 'D';
+            THEN ("is_upper returns true") {
+                REQUIRE (o(c) == true);
+            }
+        }
+        WHEN ("a string contains no uppercase characters") {
+            std::string str = "hello, world!";
+            THEN ("std::any can use is_upper and returns false") {
+                REQUIRE (any_of(str.begin(), str.end(), o) == false);
+            }
+        }
+        WHEN ("a string contains uppercase characters") {
+            std::string str = "hello, World!";
+            THEN ("std::any can use is_upper and returns true") {
+                REQUIRE (any_of(str.begin(), str.end(), o) == true);
+            }
+        }
+    }
+}
+
+SCENARIO ("match_char behaves correctly", "[utils]") {
+    GIVEN ("match_char ('f')") {
+        match_char o ('f');
+        WHEN ("a character is 'f'") {
+            char c = 'f';
+            THEN ("match_char returns true") {
+                REQUIRE (o(c) == true);
+            }
+        }
+        WHEN ("a character is not 'f'") {
+            char c = 'F';
+            THEN ("match_char returns false") {
+                REQUIRE (o(c) == false);
+            }
+        }
+    }
+}
+
+SCENARIO ("intDigits behaves correctly", "[utils]") {
+    GIVEN (0) {
+        THEN ("intDigits returns 1") {
+            REQUIRE (intDigits (0) == 1);
+        }
+    }
+    GIVEN (3) {
+        THEN ("intDigits returns 1") {
+            REQUIRE (intDigits (3) == 1);
+        }
+    }
+    GIVEN (10) {
+        THEN ("intDigits returns 2") {
+            REQUIRE (intDigits (10) == 2);
+        }
+    }
+    GIVEN (99) {
+        THEN ("intDigits returns 2") {
+            REQUIRE (intDigits (99) == 2);
+        }
+    }
+    GIVEN (100) {
+        THEN ("intDigits returns 3") {
+            REQUIRE (intDigits (100) == 3);
         }
     }
 }

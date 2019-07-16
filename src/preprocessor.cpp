@@ -1,10 +1,18 @@
+#include "constants.hpp"
 #include "preprocessor.hpp"
+#include "util.hpp"
 #include <iostream>
+#include <string>
+#include <fstream>
 
 // libavformat
 extern "C" {
 #include <libavformat/avformat.h>
 }
+
+using std::get;
+
+bool Preprocessor::avformat_init = false;
 
 void Preprocessor::InitLibAV() {
     if (!avformat_init) {
@@ -14,11 +22,28 @@ void Preprocessor::InitLibAV() {
     }
 }
 
-Preprocessor::Preprocessor (std::filesystem::path) {
+Preprocessor::Preprocessor (std::filesystem::path p) : path (p) {
     InitLibAV();
 }
 
-AliasMap Preprocessor::ParseAliasMap (const std::istream& input)
+std::optional<SoundProperties> Preprocessor::GetSoundProperties (const std::filesystem::path& path) {
+    CPP_AVFormatContext ps;
+    AVFormatContext *_ps = ps.get();
+    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
+    if (!ps) return std::nullopt;
+
+    avformat_find_stream_info (_ps, NULL);
+    int64_t duration = _ps->duration;
+    if (duration <= 0) return std::nullopt;
+    if (_ps->nb_streams != 1) return std::nullopt;
+
+    return SoundProperties (
+        Duration (static_cast<double>(duration)/AV_TIME_BASE),
+        Samplerate (_ps->streams[0]->codecpar->sample_rate)
+    );
+}
+
+AliasMap Preprocessor::ParseAliasMap (std::istream& input)
 {
     AliasMap aliasmap;
     if (input.fail()) return aliasmap;
@@ -26,15 +51,15 @@ AliasMap Preprocessor::ParseAliasMap (const std::istream& input)
     std::string ln, source, alias, options;
     bool replace;
     int items_size;
-    while (std::getline(input, ln))
-    {
+    while (std::getline(input, ln)) {
         boost::algorithm::trim(ln);
 
         if (!boost::algorithm::starts_with(ln, "#")) {
             std::vector<std::string> items;
             boost::algorithm::split(items, ln, match_char(';'));
             items_size = items.size();
-            if (items_size == 2 || items_size == 3) // source and alias exist
+            if ((items_size == 2 || items_size == 3) // source and alias exist
+                && items.at(0).length() > 0 && items.at(1).length() > 0) // source and alias have content
             {
                 source = boost::algorithm::trim_copy(items.at(0));
                 alias  = boost::algorithm::trim_copy(items.at(1));
@@ -44,8 +69,7 @@ AliasMap Preprocessor::ParseAliasMap (const std::istream& input)
 
                 replace = false; // default behavior: don't replace, just alias
 
-                if (items_size == 3)
-                {
+                if (items_size == 3) {
                     options = boost::algorithm::trim_copy(items.at(2));
                     boost::algorithm::to_lower(options);
                     if (boost::algorithm::contains(options, "replace"))
@@ -93,11 +117,12 @@ SoundInfoMap Preprocessor::ProcessSoundSet (const std::filesystem::path& path) /
         {
             if (boost::iequals(sub_path.filename().string(), "map.txt"))
             {
-                aliasmap = ParseAliasMap (std::ifstream (sub_path));
+                std::ifstream _sub_path (sub_path);
+                aliasmap = ParseAliasMap (_sub_path);
             }
             else
             {
-                if (boost::optional<SoundFileInfo> soundinfo = GetSoundFileInfo (*it))
+                if (std::optional<SoundFileInfo> soundinfo = GetSoundFileInfo (*it))
                 {
                     SoundFileInfo info = *soundinfo;
                     SoundName _info_list_name (boost::algorithm::to_lower_copy (it->filename().replace_extension("").string()));
@@ -162,8 +187,75 @@ SoundInfoMap Preprocessor::ProcessSoundSet (const std::filesystem::path& path) /
 
 bool Preprocessor::UpdateSoundSet(const std::filesystem::path& path, const int& folder_p, const int& folder_t) {
     //SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t); // TODO
-    bool success = WriteSoundList(ProcessSoundSet(path), path.filename().string());
+    //bool success = WriteSoundList(ProcessSoundSet(path), path.filename().string());
     //UpdateGenerationActivity(-1, true);
     //cout << (success ? " done" : " fail") << endl;
-    return success;
+    //return success;
+}
+
+std::optional<SoundFileInfo> Preprocessor::GetSoundFileInfo (const std::filesystem::path& path) {
+    {
+        const std::string str_path = path.string();
+
+        // Check path length
+
+        if (str_path.length() > SOUNDPATH_MAXLEN)
+        {
+            //error_log << "[too long path] " << str_path << endl;
+            return std::nullopt;
+        }
+
+        // Check if path is all lowercase.
+
+        else if (any_of(str_path.begin(), str_path.end(), is_upper()))
+        {
+            //error_log << "[non-lowercase path] " << str_path << endl;
+            return std::nullopt;
+        }
+    }
+
+    if (path.has_extension())
+    {
+        std::string ext = path.extension().string();
+        boost::algorithm::to_lower(ext);
+
+        if (ext == ".ogg" || ext == ".mp3" || ext == ".wav")
+        {
+            std::filesystem::path full_path = std::filesystem::absolute(path);
+
+            std::optional<SoundProperties> properties = GetSoundProperties (full_path);
+
+            if (properties.has_value() && ext != ".ogg"
+                || (std::find(valid_samplerates_ogg.begin(), valid_samplerates_ogg.end(), properties->getSamplerate())
+                    != valid_samplerates_ogg.end())
+            )
+            {
+                return SoundFileInfo(strip_root(path), properties.value());
+            } else if (properties.has_value()) {
+                //error_log << "[invalid sample rate] " << path << ": " << properties->getSamplerate() << endl;
+            } else {
+                //error_log << "[invalid file] " << path << endl;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+SoundFileInfoList Preprocessor::ProcessSoundGroup (const std::filesystem::path& path) {
+    SoundFileInfoList list;
+
+    PathList paths;
+    copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
+    sort(paths.begin(), paths.end(), cmp_ifspath); // To make sure it's sorted.
+
+    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it) {
+        std::filesystem::path sub_path = std::filesystem::absolute((*it));
+
+        if (std::filesystem::is_regular_file(sub_path)) {
+            if (std::optional<SoundFileInfo> soundfileinfo = GetSoundFileInfo(*it)) {
+                list.push_back(*soundfileinfo);
+            }
+        }
+    }
+    return list;
 }
