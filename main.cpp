@@ -21,9 +21,12 @@
 
 /// Includes
 
+#include <src/preprocessor.hpp>
 #include <src/types.hpp>
 #include <src/error_logger.cpp>
 #include <src/util.cpp>
+#include <src/file_util.cpp>
+#include <src/info.cpp>
 
 #include <cstdint>
 #include <iostream>
@@ -150,6 +153,8 @@ bool detectWorkingDir() {
 }
 
 
+Preprocessor preprocessor;
+
 
 
 int intDigits (int number)
@@ -209,16 +214,6 @@ void SetGenerationActivityParameters(const bool& added, std::string name, const 
 }
 
 
-//inline std::filesystem::path GetAbsolutePath(const std::filesystem::path& path) {
-/*#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-    std::filesystem::path ret ("\\\\?\\");
-    ret += std::filesystem::absolute(path);
-    ret.make_preferred();
-    return ret;
-#else*/
-    //return std::filesystem::absolute(path);
-//#endif
-//}
 
 boost::optional<SoundFileInfo> GetSoundFileInfo (const std::filesystem::path& path) // Assembles an infolist about a sound.
 {
@@ -289,164 +284,6 @@ SoundFileInfoList ProcessSoundGroup (const std::filesystem::path& path)
     return list;
 }
 
-AliasMap ParseAliasMap (const std::filesystem::path& path)
-{
-    AliasMap aliasmap;
-
-    std::ifstream f (path);
-
-    if (!f.fail())
-    {
-        std::string ln, source, alias, options;
-        bool replace;
-        int items_size;
-        while (std::getline(f, ln))
-        {
-            boost::algorithm::trim(ln);
-
-            if (!boost::algorithm::starts_with(ln, "#"))
-            {
-                std::vector<std::string> items;
-                boost::algorithm::split(items, ln, match_char(';'));
-                items_size = items.size();
-                if (items_size == 2 || items_size == 3) // source and alias exist
-                {
-                    source = boost::algorithm::trim_copy(items.at(0));
-                    alias  = boost::algorithm::trim_copy(items.at(1));
-
-                    boost::algorithm::to_lower(source);
-                    boost::algorithm::to_lower(alias);
-
-                    replace = false; // default behavior: don't replace, just alias
-
-                    if (items_size == 3)
-                    {
-                        options = boost::algorithm::trim_copy(items.at(2));
-                        boost::algorithm::to_lower(options);
-                        if (boost::algorithm::contains(options, "replace"))
-                        {
-                            replace = true;
-                        }
-                    }
-
-                    aliasmap.emplace_back(make_tuple(source, alias, replace));
-                }
-            }
-        }
-        f.close();
-    }
-
-    return aliasmap;
-}
-
-SoundInfoMap ProcessSounds (const std::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
-{
-    SoundInfoMap list;
-    AliasMap aliasmap;
-
-    PathList paths;
-    copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), back_inserter(paths));
-
-    int i = 1, total = paths.size();
-
-    for(PathList::const_iterator it (paths.begin()); it != paths.end(); ++it, ++i)
-    {
-        std::filesystem::path sub_path = std::filesystem::absolute (*it);
-
-        UpdateGenerationActivity(100 * i / total);
-
-        if (is_directory(sub_path)) // It's a sound group.
-        {
-            SoundFileInfoList info = ProcessSoundGroup(*it);
-            SoundName _info_list_name (boost::algorithm::to_lower_copy (it->filename().string()));
-            if (!list.count(_info_list_name))
-            { // Doesn't exist, just add it.
-                list[_info_list_name] = info;
-            }
-            else
-            { // Exists, merge it.
-                list[_info_list_name].splice(list[_info_list_name].begin(), info);
-            }
-        }
-        else if (std::filesystem::is_regular_file(sub_path)) // It's a single file.
-        {
-            if (boost::iequals(sub_path.filename().string(), "map.txt"))
-            {
-                aliasmap = ParseAliasMap (sub_path);
-            }
-            else
-            {
-                if (boost::optional<SoundFileInfo> soundinfo = GetSoundFileInfo (*it))
-                {
-                    SoundFileInfo info = *soundinfo;
-                    SoundName _info_list_name (boost::algorithm::to_lower_copy (it->filename().replace_extension("").string()));
-                    if (!list.count (_info_list_name))
-                    { // Doesn't exist, just add it.
-                        list[_info_list_name] = SoundFileInfoList {info};
-                    }
-                    else
-                    { // Exists, add it.
-                        list[_info_list_name].push_back(info);
-                    }
-                }
-            }
-        }
-    }
-
-    if (aliasmap.size() > 0) // we have a custom sound map
-    {
-        for (AliasMap::iterator it = aliasmap.begin(); it != aliasmap.end(); ++it) // iterate over the sound map
-        {
-            // Remember: *it = [ ( source, alias, (bool) replace ) ]
-            if (list.count(get<0>(*it))) // if source exists in the list
-            {
-                SoundName alias (get<1>(*it));
-
-                if (!list.count(alias)) // the target / aliased entry doesn't exist in the sound set
-                {
-                    if (get<2>(*it)) // Replace?
-                    {
-                        list[alias] = move(list[get<0>(*it)]); // list[alias] = source data
-                        list.erase(get<0>(*it)); // -> delete the source entry
-                    }
-                    else
-                    {
-                        list[alias] = list[get<0>(*it)];
-                    }
-                }
-                else
-                {
-                    if (get<2>(*it)) // Replace?
-                    {
-                        list[alias].merge(list[get<0>(*it)]); // merge (move!) source data to list[alias]
-                        list.erase(get<0>(*it)); // -> delete the source entry (now empty after the above)
-                    }
-                    else // don't replace
-                    {
-                        std::copy(list[get<0>(*it)].begin(), list[get<0>(*it)].end(), // copy source data to list[alias]
-                            std::back_insert_iterator<SoundFileInfoList>(list[alias]));
-                    }
-                }
-            } // end if source exists in the list
-        } // end iterate over the sound map
-    } // end we have a custom sound map
-
-    // Sort SoundInfo elements inside the SoundInfos in our SoundInfoMap.
-    for (SoundInfoMap::iterator it = list.begin(); it != list.end(); ++it) {
-        it->second.sort(cmp_sfi);
-    }
-
-    return list;
-}
-
-SoundInfoMap ProcessSoundFolder(const std::filesystem::path& path)
-{
-    if (is_directory(path))
-        return ProcessSounds(path);
-    else
-        return SoundInfoMap();
-}
-
 bool WriteSoundList(const SoundInfoMap& list, const string& listname)
 {
     if (list.empty()) return false;
@@ -487,20 +324,6 @@ bool WriteSoundList(const SoundInfoMap& list, const string& listname)
         return true;
     }
     return false;
-}
-
-bool UpdateSoundFolder(const std::filesystem::path& path, const int& folder_p, const int& folder_t) {
-    SetGenerationActivityParameters(true, path.filename().string(), folder_p, folder_t);
-    bool success = WriteSoundList(ProcessSoundFolder(path), path.filename().string());
-    UpdateGenerationActivity(-1, true);
-    cout << (success ? " done" : " fail") << endl;
-    return success;
-}
-
-void ClearFolder(const std::filesystem::path& path) {
-    for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it) {
-        std::filesystem::remove_all(*it);
-    }
 }
 
 void UpdateSoundSet(const string& name, const int& folder_p, const int& folder_t) {
@@ -733,27 +556,6 @@ void WriteSoundCache(SoundCache soundcache)
 
 
 
-// Cleanup
-
-void CleanupFolder(std::filesystem::path path)
-{
-    for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it)
-    {
-        if (is_directory(it->status()))
-        {
-            std::filesystem::path pp = it->path();
-
-            CleanupFolder(pp);
-
-            if(std::filesystem::is_empty(pp))
-            {
-                std::filesystem::remove_all(pp);
-            }
-        }
-    }
-}
-
-
 // Modes
 
 int DiffUpdate(const bool &open_ext)
@@ -779,7 +581,7 @@ int DiffUpdate(const bool &open_ext)
     cout << ln_base << "Cleaning up sound folder..." << endl;
     try
     {
-        CleanupFolder(SOUNDPATH);
+        CleanUpEmptySubDirectories (SOUNDPATH);
     }
     catch(std::filesystem::filesystem_error e)
     {
@@ -869,7 +671,7 @@ int FullUpdate(const bool &open_ext)
     cout << ln_base << "Deleting old lists..." << endl;
     try
     {
-        ClearFolder(LISTPATH);
+        EmptyDirectory (LISTPATH);
     }
     catch(std::filesystem::filesystem_error e)
     {
@@ -892,130 +694,6 @@ void showError(int e)
         cout << "The error message above should give you an idea on what might be wrong." << endl;
 
     interactive_wait_for_any_key();
-}
-
-bool print_topinfo()
-{
-    getdate();
-
-    const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
-        + intDigits(Version::MAJOR)
-        + intDigits(Version::MINOR)
-        + intDigits(Version::PATCH)
-#if HAS_VERSION_DISTRIBUTION
-        + strlen(Version::DISTRIBUTION) + 1
-#endif
-        + string(" by PotcFdk").length() - 1; // -1 for partly overwriting, looks cool
-
-    cout << "        ______            ,                            _   __" << endl
-         << "       / ___  |          /|                           | | /  \\\\" << endl
-         << "      / /   | |__   __ _| |_ ___  ___  _   _ _ __   __| |/ /\\ \\\\" << endl
-         << "     / /    | '_ \\ / _` | __/ __|/ _ \\| | | | `_ \\ / _` |\\ \\\\\\ \\\\" << endl
-         << "    ( (     | | | | (_| | |_\\__ \\ (_) | |_| | | | | (_| | \\ \\\\\\//" << endl
-         << "     \\ \\    |_| |_|\\__,_|\\______/\\___/ \\__,_|_| |_|\\__,/ \\ \\ \\\\" << endl
-         << "      \\ \\____________                                   \\ \\/ //" << endl
-         << "       \\____________ \\'\"`-._,-'\"`-._,-'\"`-._,-'\"`-._,-'\"`\\__//" << endl
-         << "         ____  | |__) ) __ ___ _ __  _ __ ___   ___ ___  ___ ___  ___  _ __" << endl
-         << "        (____) |  ___/ '__/ _ \\ '_ \\| '__/ _ \\ / __/ _ \\/ __/ __|/ _ \\| '__|" << endl
-         << "               | |   | | |  __/ |_) | | | (_) | (_(  __/\\__ \\__ \\ (_) | |" << endl
-         << "         _____/ /    | |  \\___| .__/|_|  \\___/ \\___\\________/___/\\___/| |" << endl
-         << "        (______/     | |      | |                            ^potcfdk | |" << endl
-         << "                      \\|      |_|                                     | |" << endl
-         << (tag_line_length < 70 ? EXT_LINE : END_LINE)
-         << endl;
-
-    if (tag_line_length < 70)
-        cout << RXT_LINE;
-
-    cout << "chatsounds-preprocessor v"
-         << Version::MAJOR << "."
-         << Version::MINOR << "."
-         << Version::PATCH
-#if HAS_VERSION_DISTRIBUTION
-         << Version::DISTRIBUTION
-#endif
-         << " by PotcFdk" << endl;
-
-    if (tag_line_length < 70)
-        cout << EXT_LINE << endl << RXT_LINE;
-    else
-        cout << endl;
-
-    cout << "Please report any bugs / issues to:" << endl;
-
-    if (tag_line_length < 70)
-        cout << RXT_LINE;
-
-    cout << BUGTRACKER_LINK << endl;
-
-    if (tag_line_length < 70)
-    {
-        cout << EXT_LINE << endl << RXT_LINE;
-        return true;
-    }
-    else
-    {
-        cout << endl;
-        return tag_line_length < 70;
-    }
-}
-
-void print_versioninfo()
-{
-    getdate();
-
-    cout << "chatsounds-preprocessor"
-         << endl << "Author     : PotcFdk"
-         << endl << "Version    : "
-         << Version::MAJOR << "."
-         << Version::MINOR << "."
-         << Version::PATCH
-#if HAS_VERSION_DISTRIBUTION
-         << Version::DISTRIBUTION
-#endif
-         << endl << "Build date : "
-         << year << "-";
-    if (month < 10) cout << 0;
-    cout << month << "-";
-    if (day < 10) cout << 0;
-    cout << day << endl
-#if defined(__clang__)
-         << "Compiler   : Clang/LLVM, version "
-#if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
-         << __clang_major__ << '.' << __clang_minor__ << '.' << __clang_patchlevel__
-#else
-         << __VERSION__
-#endif
-         << endl;
-#elif defined(__GNUG__)
-         << "Compiler   : GNU G++, version "
-#if defined(__GNUG__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
-         << __GNUG__ << '.' << __GNUC_MINOR__ << '.' << __GNUC_PATCHLEVEL__
-#else
-         << __VERSION__
-#endif
-         << endl;
-#elif defined(_MSC_VER)
-         << "Compiler   : Microsoft Visual Studio, version "  << _MSC_VER << endl;
-#elif defined(__VERSION__)
-         << "Compiler   : Unknown compiler, version " << __VERSION__ << endl;
-#else
-         << "Compiler   : Unknown compiler" << endl;
-#endif
-
-    // More verbose information
-
-    cout << "Boost Info : " << endl
-         << " * Boost version " << (BOOST_VERSION / 100000)
-         << '.' << ((BOOST_VERSION / 100) % 1000)
-         << '.' << (BOOST_VERSION % 100) << endl
-         << " * " << BOOST_COMPILER << " on " << BOOST_PLATFORM << endl
-         << " * " << BOOST_STDLIB << endl;
-
-    cout << "libav Info : " << endl
-         << " * libavformat " << AV_STRINGIFY(LIBAVFORMAT_VERSION) << " (ct:" << LIBAVFORMAT_VERSION_INT << " rt:" << avformat_version() << ")" << endl
-         << " * libavcodec  " << AV_STRINGIFY(LIBAVCODEC_VERSION)  << " (ct:" << LIBAVCODEC_VERSION_INT  << " rt:" << avcodec_version()  << ")" << endl
-         << " * libavutil   " << AV_STRINGIFY(LIBAVUTIL_VERSION)   << " (ct:" << LIBAVUTIL_VERSION_INT   << " rt:" << avutil_version()   << ")" << endl;
 }
 
 

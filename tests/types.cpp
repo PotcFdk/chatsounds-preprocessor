@@ -29,7 +29,7 @@ SCENARIO ("SoundFileInfo can be constructed and used", "[types]" ) {
     }
 }
 
-SCENARIO ("SoundFileInfoLists can be merged") {
+SCENARIO ("SoundFileInfoLists can be merged", "[types]") {
     GIVEN ("a SoundInfoMap") {
         SoundInfoMap map;
         AND_GIVEN ("two lists as values") {
