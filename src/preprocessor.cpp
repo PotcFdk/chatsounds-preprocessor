@@ -101,6 +101,21 @@ SoundFileInfoList proc_sound_group (const std::filesystem::directory_entry& de) 
     return sfil;
 }
 
+SoundName get_sound_name_from_SFIL (const SoundFileInfoList& sfil) {
+    return sfil.front().getName(); // TODO: checks
+}
+
+SoundInfoMap proc_merge_SFIL_into_SIM (SoundInfoMap sim, SoundFileInfoList sfil) {
+    // check if map contains key
+    SoundName name (get_sound_name_from_SFIL (sfil));
+    if (sim.find (name) != sim.end()) { // yes
+        sim[name].splice(sim[name].begin(), sfil);
+    } else { // no
+        sim [name] = sfil;
+    }
+    return sim;
+}
+
 SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
     SoundInfoMap map;
     auto [files, directories] = split_files_directories (paths);
@@ -124,7 +139,7 @@ SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
     std::transform (directories.begin(), directories.end(), std::back_inserter(sfil_directories),
         proc_sound_group);
 
-
+/*
     std::cout << " FILES : " << std::endl;
 
     for (auto& L : sfil_files) {
@@ -139,14 +154,13 @@ SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
         for (auto& O : L) {
             std::cout << O.getName() << " : " << O.getPath() << std::endl;
         }
+        std::cout << ";" << std::endl;
     }
+*/
+    map.insert (std::make_pair (sfil_files.front().front().getName(), sfil_files.front()));
 
+    std::accumulate (sfil_files.begin(), sfil_files.end(), map, proc_merge_SFIL_into_SIM);
 
-    //SoundFileInfoList sftl1 (sfil_files.front());
-
-    //map.insert (std::make_pair(sfil_files.front().getName(), );
-
-    //std::accumulate (sfil_files.begin(), sfil_files.end()
     return map;
 }
 
