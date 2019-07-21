@@ -12,13 +12,13 @@
 
 int Launch_DiffUpdate(const bool &open_ext)
 {
-    PathList sound_set_paths = scandir (SOUNDPATH);
-    std::sort (sound_set_paths.begin(), sound_set_paths.end(), cmp_ifspath);
+    DirectoryEntries sound_set_dirs = scandir (SOUNDPATH);
+    std::sort (sound_set_dirs.begin(), sound_set_dirs.end(), cmp_ifspath);
     
-    std::list <PathList> sound_sets;
-    std::transform (sound_set_paths.begin(), sound_set_paths.end(), std::back_inserter(sound_sets), scandir);
+    Repository repository;
+    std::transform (sound_set_dirs.begin(), sound_set_dirs.end(), std::back_inserter(repository), scandir);
 
-    for (auto& e : sound_sets) {
+    for (auto& e : repository) {
         for (auto& _e : e) {
             std::cout << _e << std::endl;
         }
