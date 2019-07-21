@@ -167,3 +167,72 @@ SCENARIO ("proc_merge_SFIL_into_SIM", "[preprocessor]") {
     }
 }
 
+SCENARIO ("proc_apply_AME_to_SIM", "[preprocessor]") {
+    GIVEN ("a SoundInfoMap with entries") {
+        SoundInfoMap map {
+            std::make_pair (SoundName ("exist1"), 
+                SoundFileInfoList { SoundFileInfo (std::filesystem::path ("some/dir/exist1.ogg"), Duration (100), Samplerate (44100)) }
+            ),
+            std::make_pair (SoundName ("exist2"), 
+                SoundFileInfoList { SoundFileInfo (std::filesystem::path ("some/dir/exist2.ogg"), Duration (100), Samplerate (44100)) }
+            ),
+            std::make_pair (SoundName ("exist3"), 
+                SoundFileInfoList { SoundFileInfo (std::filesystem::path ("some/dir/exist3.ogg"), Duration (100), Samplerate (44100)) }
+            )
+        };
+        REQUIRE (map.find (SoundName ("exist1")) != map.end());
+        REQUIRE (map.find (SoundName ("exist2")) != map.end());
+        REQUIRE (map.find (SoundName ("exist3")) != map.end());
+
+        AND_GIVEN ("an AliasMapEntry that moves to an empty destination") {
+            AliasMapEntry ame (SoundName ("exist1"), SoundName ("existnew"), true);
+            THEN ("the AliasMap is applied correctly") {
+                map = proc_apply_AME_to_SIM (map, ame);
+                REQUIRE (map.find (SoundName ("exist1"))   == map.end());
+                REQUIRE (map.find (SoundName ("exist2"))   != map.end());
+                REQUIRE (map.find (SoundName ("exist3"))   != map.end());
+                REQUIRE (map.find (SoundName ("existnew")) != map.end());
+                REQUIRE (map[SoundName ("existnew")].front().getPath() == "some/dir/exist1.ogg");
+            }
+        }
+
+        AND_GIVEN ("an AliasMapEntry that copies to an empty destination") {
+            AliasMapEntry ame (SoundName ("exist1"), SoundName ("existnew"), false);
+            THEN ("the AliasMap is applied correctly") {
+                map = proc_apply_AME_to_SIM (map, ame);
+                REQUIRE (map.find (SoundName ("exist1"))   != map.end());
+                REQUIRE (map.find (SoundName ("exist2"))   != map.end());
+                REQUIRE (map.find (SoundName ("exist3"))   != map.end());
+                REQUIRE (map.find (SoundName ("existnew")) != map.end());
+                REQUIRE (map[SoundName ("existnew")].front().getPath() == "some/dir/exist1.ogg");
+            }
+        }
+
+        AND_GIVEN ("an AliasMapEntry that moves to an existing destination") {
+            AliasMapEntry ame (SoundName ("exist1"), SoundName ("exist2"), true);
+            THEN ("the AliasMap is applied correctly") {
+                map = proc_apply_AME_to_SIM (map, ame);
+                REQUIRE (map.find (SoundName ("exist1"))   == map.end());
+                REQUIRE (map.find (SoundName ("exist2"))   != map.end());
+                REQUIRE (map.find (SoundName ("exist3"))   != map.end());
+                REQUIRE (map[SoundName ("exist2")].front().getPath() == "some/dir/exist2.ogg");
+                REQUIRE ((++map[SoundName ("exist2")].begin())->getPath() == "some/dir/exist1.ogg");
+            }
+        }
+
+        AND_GIVEN ("an AliasMapEntry that copies to an existing destination") {
+            AliasMapEntry ame (SoundName ("exist1"), SoundName ("exist2"), false);
+            THEN ("the AliasMap is applied correctly") {
+                map = proc_apply_AME_to_SIM (map, ame);
+                REQUIRE (map.find (SoundName ("exist1"))   != map.end());
+                REQUIRE (map.find (SoundName ("exist2"))   != map.end());
+                REQUIRE (map.find (SoundName ("exist3"))   != map.end());
+                REQUIRE (map[SoundName ("exist1")].front().getPath() == "some/dir/exist1.ogg");
+                REQUIRE (map[SoundName ("exist2")].front().getPath() == "some/dir/exist2.ogg");
+                REQUIRE ((++map[SoundName ("exist2")].begin())->getPath() == "some/dir/exist1.ogg");
+            }
+        }
+    }
+}
+
+
