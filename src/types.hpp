@@ -57,6 +57,7 @@ typedef std::list<AliasMapEntry> AliasMap;
 
 // Misc / Generic
 
+typedef std::vector<std::filesystem::directory_entry> DirectoryEntries;
 typedef std::vector<std::filesystem::path> PathList;
 typedef std::unordered_map<std::string, int> SoundCache;
 typedef std::unordered_map<std::string, bool> MissingSoundCacheFiles;

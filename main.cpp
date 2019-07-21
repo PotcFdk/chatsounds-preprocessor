@@ -2,16 +2,35 @@
 
 #include <boost/program_options.hpp>
 
+#include "src/constants.hpp"
 #include "src/info.hpp"
+#include "src/file_util.hpp"
+#include "src/util.hpp"
+
+
+
 
 int Launch_DiffUpdate(const bool &open_ext)
 {
+    PathList sound_set_paths = scandir (SOUNDPATH);
+    std::sort (sound_set_paths.begin(), sound_set_paths.end(), cmp_ifspath);
+    
+    std::list <PathList> sound_sets;
+    std::transform (sound_set_paths.begin(), sound_set_paths.end(), std::back_inserter(sound_sets), scandir);
+
+    for (auto& e : sound_sets) {
+        for (auto& _e : e) {
+            std::cout << _e << std::endl;
+        }
+    }
+
     return -1;
 }
 
 int Launch_FullUpdate(const bool &open_ext)
 {
-    return -1;
+    EmptyDirectory (LISTPATH);
+    return Launch_DiffUpdate (open_ext);
 }
 
 std::pair<std::string, std::string> win_help_cmd_param (const std::string& s)

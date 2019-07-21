@@ -2,6 +2,8 @@
 
 #include <src/util.hpp>
 
+using Catch::Matchers::Equals, Catch::Matchers::Contains;
+
 SCENARIO ("strip_root behaves correctly", "[util]" ) {
     GIVEN ("a nested path") {
         WHEN ("the path has 3 levels") {
@@ -65,11 +67,13 @@ SCENARIO ("cmp_ifspath behaves correctly", "[util]" ) {
         };
         THEN ("std::sort can sort the paths correctly") {
             std::sort(paths.begin(), paths.end(), cmp_ifspath);
-            REQUIRE (paths[0] == "apath1/file.dat");
-            REQUIRE (paths[1] == "apath1/file.dat");
-            REQUIRE (paths[2] == "apath2/file.dat");
-            REQUIRE (paths[3] == "aPath3/file.dat");
-            REQUIRE (paths[4] == "ApaTh4/file.dat");
+            REQUIRE_THAT (paths, Equals (std::vector <std::filesystem::path> {
+                "apath1/file.dat",
+                "apath1/file.dat",
+                "apath2/file.dat",
+                "aPath3/file.dat",
+                "ApaTh4/file.dat"
+            }));
         }
     }
 }
@@ -123,11 +127,13 @@ SCENARIO ("cmp_sfi behaves correctly", "[util]") {
         };
         THEN ("std::sort can sort the paths correctly") {
             std::sort(paths.begin(), paths.end(), cmp_ifspath);
-            REQUIRE (paths[0] == "apath1/file.dat");
-            REQUIRE (paths[1] == "apath1/file.dat");
-            REQUIRE (paths[2] == "apath2/file.dat");
-            REQUIRE (paths[3] == "aPath3/file.dat");
-            REQUIRE (paths[4] == "ApaTh4/file.dat");
+            REQUIRE_THAT (paths, Equals (std::vector <std::filesystem::path> {
+                "apath1/file.dat",
+                "apath1/file.dat",
+                "apath2/file.dat",
+                "aPath3/file.dat",
+                "ApaTh4/file.dat"
+            }));
         }
     }
 }
