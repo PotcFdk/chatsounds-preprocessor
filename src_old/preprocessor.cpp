@@ -26,63 +26,6 @@ Preprocessor::Preprocessor (std::filesystem::path p) : path (p) {
     InitLibAV();
 }
 
-std::optional<SoundProperties> Preprocessor::GetSoundProperties (const std::filesystem::path& path) {
-    CPP_AVFormatContext ps;
-    AVFormatContext *_ps = ps.get();
-    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
-    if (!ps) return std::nullopt;
-
-    avformat_find_stream_info (_ps, NULL);
-    int64_t duration = _ps->duration;
-    if (duration <= 0) return std::nullopt;
-    if (_ps->nb_streams != 1) return std::nullopt;
-
-    return SoundProperties (
-        Duration (static_cast<double>(duration)/AV_TIME_BASE),
-        Samplerate (_ps->streams[0]->codecpar->sample_rate)
-    );
-}
-
-AliasMap Preprocessor::ParseAliasMap (std::istream& input)
-{
-    AliasMap aliasmap;
-    if (input.fail()) return aliasmap;
-
-    std::string ln, source, alias, options;
-    bool replace;
-    int items_size;
-    while (std::getline(input, ln)) {
-        boost::algorithm::trim(ln);
-
-        if (!boost::algorithm::starts_with(ln, "#")) {
-            std::vector<std::string> items;
-            boost::algorithm::split(items, ln, match_char(';'));
-            items_size = items.size();
-            if ((items_size == 2 || items_size == 3) // source and alias exist
-                && items.at(0).length() > 0 && items.at(1).length() > 0) // source and alias have content
-            {
-                source = boost::algorithm::trim_copy(items.at(0));
-                alias  = boost::algorithm::trim_copy(items.at(1));
-
-                boost::algorithm::to_lower(source);
-                boost::algorithm::to_lower(alias);
-
-                replace = false; // default behavior: don't replace, just alias
-
-                if (items_size == 3) {
-                    options = boost::algorithm::trim_copy(items.at(2));
-                    boost::algorithm::to_lower(options);
-                    if (boost::algorithm::contains(options, "replace"))
-                        replace = true;
-                }
-
-                aliasmap.emplace_back(make_tuple(source, alias, replace));
-            }
-        }
-    }
-
-    return aliasmap;
-}
 
 SoundInfoMap Preprocessor::ProcessSoundSet (const std::filesystem::path& path) // Scans a subdirectory and compiles all the soundinfos into a list.
 {

@@ -31,21 +31,32 @@ class SoundProperties {
         Samplerate samplerate_;
 };
 
+using SoundName = fluent::NamedType<std::string, struct SoundNameParameter, fluent::Comparable, fluent::Printable>;
+
 class SoundFileInfo : public SoundProperties {
     public:
-        explicit SoundFileInfo (std::filesystem::path p, Duration d, Samplerate s) : path_(p), SoundProperties(d, s) {}
-        explicit SoundFileInfo (std::filesystem::path p, SoundProperties sp) : path_(p), SoundProperties(sp) {}
+        explicit SoundFileInfo (std::filesystem::path p, Duration d, Samplerate s)
+            : path_(p), name_(nameFromPath(p)), SoundProperties(d, s) {}
+        explicit SoundFileInfo (std::filesystem::path p, SoundProperties sp)
+            : path_(p), name_(nameFromPath(p)), SoundProperties(sp) {}
 
         const bool operator < (const SoundFileInfo &other) const {
             return boost::algorithm::ilexicographical_compare (path_.c_str(), other.getPath().c_str());
         }
 
+        void setName (SoundName name) { name_ = name; }
+
+        SoundName getName() const { return name_; }
         std::filesystem::path getPath() const { return path_; }
     private:
+        static SoundName nameFromPath (const std::filesystem::path& path) {
+            std::string fname = path.filename().replace_extension ("").string();
+            transform (fname.begin(), fname.end(), fname.begin(), ::tolower);
+            return SoundName (fname);
+        }
+        SoundName name_;
         std::filesystem::path path_;
 };
-
-using SoundName = fluent::NamedType<std::string, struct SoundNameParameter, fluent::Comparable, fluent::Printable>;
 
 typedef std::list<SoundFileInfo> SoundFileInfoList;
 typedef std::map<SoundName, SoundFileInfoList> SoundInfoMap;

@@ -20,6 +20,16 @@ std::pair <DirectoryEntries, DirectoryEntries> split_files_directories (const Di
     return std::make_pair (files, dirs);
 }
 
+std::filesystem::path directory_entry_to_path (const std::filesystem::directory_entry& de) {
+    return de.path();
+}
+
+PathList directory_entries_to_pathlist (const DirectoryEntries& de) {
+    PathList pl;
+    std::transform (de.begin(), de.end(), std::back_inserter(pl), directory_entry_to_path);
+    return pl;
+}
+
 void EmptyDirectory (const std::filesystem::path& path) {
     for (std::filesystem::directory_iterator it(path); it != std::filesystem::directory_iterator(); ++it) {
         std::filesystem::remove_all(*it);

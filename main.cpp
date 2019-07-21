@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -6,23 +7,22 @@
 #include "src/info.hpp"
 #include "src/file_util.hpp"
 #include "src/util.hpp"
-
-
+#include "src/preprocessor.hpp"
 
 
 int Launch_DiffUpdate(const bool &open_ext)
 {
-    DirectoryEntries sound_set_dirs = scandir (SOUNDPATH);
-    std::sort (sound_set_dirs.begin(), sound_set_dirs.end(), cmp_ifspath);
-    
-    Repository repository;
-    std::transform (sound_set_dirs.begin(), sound_set_dirs.end(), std::back_inserter(repository), scandir);
+    Repository repository = gen_Repository (SOUNDPATH);
 
+/*
     for (auto& e : repository) {
         for (auto& _e : e) {
             std::cout << _e << std::endl;
         }
     }
+*/
+
+    gen_SoundInfoMap (*(repository.begin()));
 
     return -1;
 }

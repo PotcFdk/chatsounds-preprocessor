@@ -15,16 +15,19 @@ SCENARIO ("SoundProperties can be constructed and used", "[types]" ) {
 }
 
 SCENARIO ("SoundFileInfo can be constructed and used", "[types]" ) {
-    GIVEN ("a SoundFileInfo object") {
-        SoundFileInfo object (std::filesystem::path ("TEST"), Duration(123), Samplerate(44100));
-        THEN ("the path can be read") {
-            REQUIRE (object.getPath() == "TEST");
+    GIVEN ("a valid SoundFileInfo object") {
+        SoundFileInfo object (std::filesystem::path ("some/path/file.ogg"), Duration(123), Samplerate(44100));
+        THEN ("the path can be read and is correct") {
+            REQUIRE (object.getPath() == "some/path/file.ogg");
         }
-        THEN ("the duration can be read") {
+        THEN ("the duration can be read and is correct") {
             REQUIRE (object.getDuration() == 123);
         }
-        THEN ("the sample rate can be read") {
+        THEN ("the sample rate can be read and is correct") {
             REQUIRE (object.getSamplerate() == 44100);
+        }
+        THEN ("the name can be read and is correct") {
+            REQUIRE (object.getName().get() == "file");
         }
     }
 }
@@ -37,12 +40,12 @@ SCENARIO ("SoundFileInfoLists can be merged", "[types]") {
             SoundName B("key2");
             {
                 SoundFileInfoList list;
-                list.push_back(SoundFileInfo(std::filesystem::path("TEST2"), Duration(123), Samplerate(0)));
+                list.push_back(SoundFileInfo(std::filesystem::path("some/path/TEST2.ogg"), Duration(123), Samplerate(0)));
                 map[A] = list;
             }
             {
                 SoundFileInfoList list;
-                list.push_back(SoundFileInfo(std::filesystem::path("TEST6"), Duration(234), Samplerate(0)));
+                list.push_back(SoundFileInfo(std::filesystem::path("some/path/TEST6.ogg"), Duration(234), Samplerate(0)));
                 map[B] = list;
             }
             WHEN ("the lists are merged with .merge()") {

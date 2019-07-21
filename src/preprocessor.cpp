@@ -1,6 +1,161 @@
+#include <fstream>
+#include <numeric>
+
 #include "types.hpp"
+#include "file_util.hpp"
+#include "util.hpp"
+
+bool isMapPath (const std::filesystem::path& path) {
+    return path.filename() == "map.txt";
+}
+
+std::optional<SoundProperties> getSoundProperties (const std::filesystem::path& path) {
+    CPP_AVFormatContext ps;
+    AVFormatContext *_ps = ps.get();
+    avformat_open_input (ps.get_ptr(), path.string().c_str(), NULL, NULL);
+    if (!ps) return std::nullopt;
+
+    avformat_find_stream_info (_ps, NULL);
+    int64_t duration = _ps->duration;
+    if (duration <= 0) return std::nullopt;
+    if (_ps->nb_streams != 1) return std::nullopt;
+
+    return SoundProperties (
+        Duration (static_cast<double>(duration)/AV_TIME_BASE),
+        Samplerate (_ps->streams[0]->codecpar->sample_rate)
+    );
+}
+
+std::optional<SoundFileInfo> proc_sound_file (const std::filesystem::path& path) {
+    std::optional<SoundProperties> soundProperties = getSoundProperties (path);
+    if (!soundProperties.has_value()) {
+        return std::nullopt;
+    } else {
+        return SoundFileInfo (path, soundProperties.value());
+    }
+}
+
+std::optional<SoundFileInfo> proc_sound_file_de (const std::filesystem::directory_entry& de) {
+    return proc_sound_file (de.path());
+}
+
+AliasMap parseAliasMap (std::istream& input) {
+    AliasMap aliasmap;
+    if (input.fail()) return aliasmap;
+
+    std::string ln, source, alias, options;
+    bool replace;
+    int items_size;
+    while (std::getline(input, ln)) {
+        boost::algorithm::trim(ln);
+
+        if (!boost::algorithm::starts_with(ln, "#")) {
+            std::vector<std::string> items;
+            boost::algorithm::split(items, ln, match_char(';'));
+            items_size = items.size();
+            if ((items_size == 2 || items_size == 3) // source and alias exist
+                && items.at(0).length() > 0 && items.at(1).length() > 0) // source and alias have content
+            {
+                source = boost::algorithm::trim_copy(items.at(0));
+                alias  = boost::algorithm::trim_copy(items.at(1));
+
+                boost::algorithm::to_lower(source);
+                boost::algorithm::to_lower(alias);
+
+                replace = false; // default behavior: don't replace, just alias
+
+                if (items_size == 3) {
+                    options = boost::algorithm::trim_copy(items.at(2));
+                    boost::algorithm::to_lower(options);
+                    if (boost::algorithm::contains(options, "replace"))
+                        replace = true;
+                }
+
+                aliasmap.emplace_back(make_tuple(source, alias, replace));
+            }
+        }
+    }
+
+    return aliasmap;
+}
+
+std::optional<AliasMap> proc_alias_file (const std::filesystem::path& path) {
+    std::ifstream file (path);
+    if (!file.is_open()) return std::nullopt;
+    return parseAliasMap (file);
+}
+
+SoundFileInfoList proc_sound_group (const std::filesystem::directory_entry& de) {
+    std::list<std::optional<SoundFileInfo>> list_optional_sfi;
+    SoundFileInfoList sfil;
+
+    DirectoryEntries entries = scandir (directory_entry_to_path (de));
+
+    std::transform (entries.begin(), entries.end(), std::back_inserter(list_optional_sfi), proc_sound_file_de);
+    std::remove_if (list_optional_sfi.begin(), list_optional_sfi.end(), [](auto e) { return !e.has_value(); });
+    std::transform (list_optional_sfi.begin(), list_optional_sfi.end(), std::back_inserter(sfil), [](auto e) {
+        return e.value();
+    });
+    return sfil;
+}
+
+SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
+    SoundInfoMap map;
+    auto [files, directories] = split_files_directories (paths);
+    std::remove_if (files.begin(), files.end(), isMapPath);
+
+    std::list<DirectoryEntries> list_de_files, list_de_directories;
+    std::list<PathList> list_pl_directories;
+
+    std::list<SoundFileInfoList> sfil_files, sfil_directories;
+
+    { // handle files
+        std::list<std::optional<SoundFileInfo>> list_optional_sfi_files;
+        std::transform (files.begin(), files.end(), std::back_inserter(list_optional_sfi_files), proc_sound_file_de);
+        std::remove_if (list_optional_sfi_files.begin(), list_optional_sfi_files.end(), [](auto e) { return !e.has_value(); });
+        std::transform (list_optional_sfi_files.begin(), list_optional_sfi_files.end(), std::back_inserter(sfil_files), [](auto e) {
+            return SoundFileInfoList { e.value() }; // wrap into a single-entry SFIL
+        });
+    }
+
+    // handle directories / sound groups
+    std::transform (directories.begin(), directories.end(), std::back_inserter(sfil_directories),
+        proc_sound_group);
 
 
+    std::cout << " FILES : " << std::endl;
+
+    for (auto& L : sfil_files) {
+        for (auto& O : L) {
+            std::cout << O.getName() << " : " << O.getPath() << std::endl;
+        }
+    }
+
+    std::cout << " DIRS : " << std::endl;
+    
+    for (auto& L : sfil_directories) {
+        for (auto& O : L) {
+            std::cout << O.getName() << " : " << O.getPath() << std::endl;
+        }
+    }
+
+
+    //SoundFileInfoList sftl1 (sfil_files.front());
+
+    //map.insert (std::make_pair(sfil_files.front().getName(), );
+
+    //std::accumulate (sfil_files.begin(), sfil_files.end()
+    return map;
+}
+
+Repository gen_Repository (const std::filesystem::path& p) {
+    DirectoryEntries sound_set_dirs = scandir (p);
+    std::sort (sound_set_dirs.begin(), sound_set_dirs.end(), cmp_ifspath);
+    
+    Repository repository;
+    std::transform (sound_set_dirs.begin(), sound_set_dirs.end(), std::back_inserter(repository), scandir);
+    return repository;
+}
 
 /*SoundInfoMap gen_SoundInfoMap (std::filesystem::path p) {
 

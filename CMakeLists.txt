@@ -155,7 +155,7 @@ IF (NOT CAN_COMPILE_WITHOUT_STDCPPFS)
 	endif()
 ENDIF()
 
-add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc" src/util.cpp src/info.cpp src/file_util.cpp)
+add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc" src/util.cpp src/info.cpp src/file_util.cpp src/preprocessor.cpp)
 target_link_libraries(chatsounds-preprocessor ${CPPEXPERIMENTAL_LIBRARIES} ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
 
 add_executable(tests tests/main.cpp tests/util.cpp src/util.cpp tests/types.cpp tests/file_util.cpp src/file_util.cpp)

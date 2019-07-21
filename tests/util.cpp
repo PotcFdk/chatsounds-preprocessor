@@ -89,28 +89,28 @@ SCENARIO ("getNumberOfDirectories behaves correctly", "[util]") {
 
 SCENARIO ("cmp_sfi behaves correctly", "[util]") {
     GIVEN ("two SoundFileInfo objects") {
-        SoundFileInfo o1 ("apath1", Duration(0), Samplerate(0));
+        SoundFileInfo o1 ("dir/apath1", Duration(0), Samplerate(0));
         WHEN ("the paths are both identical") {
-            SoundFileInfo o2 ("apath1", Duration(0), Samplerate(0));
+            SoundFileInfo o2 ("dir/apath1", Duration(0), Samplerate(0));
             THEN ("it returns 0") {
                 REQUIRE (cmp_sfi (o1, o2) == 0);
             }
         }
         WHEN ("the paths are both the same, but differ in the case") {
-            SoundFileInfo o2 ("APaTh1", Duration(0), Samplerate(0));
+            SoundFileInfo o2 ("dir/APaTh1", Duration(0), Samplerate(0));
             THEN ("it returns 0") {
                 REQUIRE (cmp_sfi (o1, o2) == 0);
             }
         }
         WHEN ("the paths differ in content") {
             AND_WHEN ("path_2 comes after path_1") {
-                SoundFileInfo o2 ("apath2", Duration(0), Samplerate(0));
+                SoundFileInfo o2 ("dir/apath2", Duration(0), Samplerate(0));
                 THEN ("it returns true") {
                     REQUIRE (cmp_sfi (o1, o2));
                 }
             }
             AND_WHEN ("path_2 comes before path_1") {
-                SoundFileInfo o2 ("apath0", Duration(0), Samplerate(0));
+                SoundFileInfo o2 ("dir/apath0", Duration(0), Samplerate(0));
                 THEN ("it returns false") {
                     REQUIRE_FALSE (cmp_sfi (o1, o2));
                 }
