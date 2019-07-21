@@ -1,6 +1,9 @@
 #include <version.hpp>
 #include <iostream>
 
+#include "util.hpp"
+#include "constants.hpp"
+
 using std::cout, std::endl;
 
 static const char
@@ -40,14 +43,14 @@ bool print_topinfo()
 {
     readdate();
 
-    const int tag_line_length = string("chatsounds-preprocessor v").length() + 2
+    const int tag_line_length = std::string("chatsounds-preprocessor v").length() + 2
         + intDigits(Version::MAJOR)
         + intDigits(Version::MINOR)
         + intDigits(Version::PATCH)
 #if HAS_VERSION_DISTRIBUTION
         + strlen(Version::DISTRIBUTION) + 1
 #endif
-        + string(" by PotcFdk").length() - 1; // -1 for partly overwriting, looks cool
+        + std::string(" by PotcFdk").length() - 1; // -1 for partly overwriting, looks cool
 
     cout << "        ______            ,                            _   __" << endl
          << "       / ___  |          /|                           | | /  \\\\" << endl
@@ -90,9 +93,15 @@ bool print_topinfo()
 
     cout << BUGTRACKER_LINK << endl;
 
+    // TODO: re-implement the fancy line support
+    // HACK: disable it temporarily:
+    cout << END_LINE << endl;
+    return false;
+    // END OF HACK
+
     if (tag_line_length < 70)
     {
-        cout << EXT_LINE << endl << RXT_LINE;
+        cout << RXT_LINE << endl << RXT_LINE;
         return true;
     }
     else
@@ -104,7 +113,7 @@ bool print_topinfo()
 
 void print_versioninfo()
 {
-    getdate();
+    readdate();
 
     cout << "chatsounds-preprocessor"
          << endl << "Author     : PotcFdk"

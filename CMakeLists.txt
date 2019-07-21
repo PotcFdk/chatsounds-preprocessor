@@ -28,9 +28,9 @@ cmake_minimum_required (VERSION 2.6)
 project (chatsounds-preprocessor)
 
 SET (CMAKE_CXX_STANDARD 17)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -ggdb -O0 -pthread")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
-SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
+SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib -Wl,-z,now")
 
 message (STATUS "        ______            ,                            _   __")
 message (STATUS "       / ___  |          /|                           | | /  \\\\")
@@ -155,8 +155,8 @@ IF (NOT CAN_COMPILE_WITHOUT_STDCPPFS)
 	endif()
 ENDIF()
 
-add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc")
+add_executable(chatsounds-preprocessor main.cpp "${PROJECT_BINARY_DIR}/windows-fileinfo.rc" src/util.cpp src/info.cpp)
 target_link_libraries(chatsounds-preprocessor ${CPPEXPERIMENTAL_LIBRARIES} ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
 
-add_executable(tests tests/main.cpp tests/util.cpp tests/types.cpp)
+add_executable(tests tests/main.cpp tests/util.cpp tests/types.cpp tests/preprocessor.cpp src/util.cpp)
 target_link_libraries(tests ${CPPEXPERIMENTAL_LIBRARIES} ${Boost_LIBRARIES} ${FFMPEG_avformat_LIBRARY} ${FFMPEG_avcodec_LIBRARY} ${FFMPEG_avutil_LIBRARY} ${BCRYPT_LIBRARY})
