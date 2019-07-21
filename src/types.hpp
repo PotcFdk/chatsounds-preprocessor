@@ -63,7 +63,20 @@ typedef std::map<SoundName, SoundFileInfoList> SoundInfoMap;
 
 // Alias Map
 
-typedef std::tuple<SoundName, SoundName, bool> AliasMapEntry;
+class AliasMapEntry {
+    public:
+        AliasMapEntry (SoundName source, SoundName destination, bool replace)
+            : source_(source), destination_(destination), replace_(replace) {};
+
+        SoundName getSource () const { return source_; }
+        SoundName getDestination () const { return destination_; }
+        bool getReplace () const { return replace_; }
+
+    private:
+        SoundName source_, destination_;
+        bool replace_;
+};
+
 typedef std::list<AliasMapEntry> AliasMap;
 
 // Misc / Generic

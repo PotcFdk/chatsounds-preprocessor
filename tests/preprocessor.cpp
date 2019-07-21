@@ -31,9 +31,9 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
                 AliasMap map = parseAliasMap (input);
                 REQUIRE (map.size() == 1);
                 AND_THEN ("the map contains the correct all-lowercase entry") {
-                    REQUIRE (get<0>(map.front()).get() == "n_src");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst"));
+                    REQUIRE (map.front().getReplace() == false);
                 }
             }
         }
@@ -44,21 +44,21 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
                 AliasMap map = parseAliasMap (input);
                 REQUIRE (map.size() == 4);
                 AND_THEN ("the map contains the correct all-lowercase entries") {
-                    REQUIRE (get<0>(map.front()).get() == "n_src1");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst1");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src1"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst1"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src2");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst2");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src2"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst2"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src3");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst3");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src3"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst3"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src4");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst4");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src4"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst4"));
+                    REQUIRE (map.front().getReplace() == false);
                 }
             }
         }
@@ -69,21 +69,21 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
                 AliasMap map = parseAliasMap (input);
                 REQUIRE (map.size() == 4);
                 AND_THEN ("the map contains the correct entries") {
-                    REQUIRE (get<0>(map.front()).get() == "n_src1");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst1");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src1"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst1"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src2");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst2");
-                    REQUIRE (get<2>(map.front()) == true);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src2"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst2"));
+                    REQUIRE (map.front().getReplace() == true);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src3");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst3");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src3"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst3"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src4");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst4");
-                    REQUIRE (get<2>(map.front()) == true);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src4"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst4"));
+                    REQUIRE (map.front().getReplace() == true);
                 }
             }
         }
@@ -94,21 +94,21 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
                 AliasMap map = parseAliasMap (input);
                 REQUIRE (map.size() == 4);
                 AND_THEN ("the map contains the correct entries") {
-                    REQUIRE (get<0>(map.front()).get() == "n_src1");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst1");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src1"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst1"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src2");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst2");
-                    REQUIRE (get<2>(map.front()) == true);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src2"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst2"));
+                    REQUIRE (map.front().getReplace() == true);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src3");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst3");
-                    REQUIRE (get<2>(map.front()) == false);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src3"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst3"));
+                    REQUIRE (map.front().getReplace() == false);
                     map.pop_front();
-                    REQUIRE (get<0>(map.front()).get() == "n_src4");
-                    REQUIRE (get<1>(map.front()).get() == "n_dst4");
-                    REQUIRE (get<2>(map.front()) == true);
+                    REQUIRE (map.front().getSource() == SoundName ("n_src4"));
+                    REQUIRE (map.front().getDestination() == SoundName ("n_dst4"));
+                    REQUIRE (map.front().getReplace() == true);
                 }
             }
         }

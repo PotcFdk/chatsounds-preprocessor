@@ -71,7 +71,7 @@ AliasMap parseAliasMap (std::istream& input) {
                         replace = true;
                 }
 
-                aliasmap.emplace_back(make_tuple(source, alias, replace));
+                aliasmap.emplace_back (AliasMapEntry (SoundName (source), SoundName (alias), replace));
             }
         }
     }
@@ -115,6 +115,15 @@ SoundInfoMap proc_merge_SFIL_into_SIM (SoundInfoMap sim, SoundFileInfoList sfil)
     } else { // no
         sim [name] = sfil;
     }
+    return sim;
+}
+
+SoundInfoMap proc_apply_AME_to_SIM (SoundInfoMap sim, const AliasMapEntry& ame) {
+    return sim;
+}
+
+SoundInfoMap proc_apply_AM_to_SIM (SoundInfoMap sim, const AliasMap& am) {
+    sim = std::accumulate (am.begin(), am.end(), sim, proc_apply_AME_to_SIM);
     return sim;
 }
 
