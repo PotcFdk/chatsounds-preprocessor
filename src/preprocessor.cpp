@@ -139,27 +139,9 @@ SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
     std::transform (directories.begin(), directories.end(), std::back_inserter(sfil_directories),
         proc_sound_group);
 
-/*
-    std::cout << " FILES : " << std::endl;
-
-    for (auto& L : sfil_files) {
-        for (auto& O : L) {
-            std::cout << O.getName() << " : " << O.getPath() << std::endl;
-        }
-    }
-
-    std::cout << " DIRS : " << std::endl;
-    
-    for (auto& L : sfil_directories) {
-        for (auto& O : L) {
-            std::cout << O.getName() << " : " << O.getPath() << std::endl;
-        }
-        std::cout << ";" << std::endl;
-    }
-*/
-    map.insert (std::make_pair (sfil_files.front().front().getName(), sfil_files.front()));
-
-    std::accumulate (sfil_files.begin(), sfil_files.end(), map, proc_merge_SFIL_into_SIM);
+    // merge files and sound groups into the map
+    map = std::accumulate (sfil_files.begin(), sfil_files.end(), map, proc_merge_SFIL_into_SIM);
+    map = std::accumulate (sfil_directories.begin(), sfil_directories.end(), map, proc_merge_SFIL_into_SIM);
 
     return map;
 }
