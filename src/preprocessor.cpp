@@ -92,7 +92,9 @@ SoundFileInfoList proc_sound_group (const std::filesystem::directory_entry& de) 
     DirectoryEntries entries = scandir (directory_entry_to_path (de));
 
     std::transform (entries.begin(), entries.end(), std::back_inserter(list_optional_sfi), proc_sound_file_de);
-    std::remove_if (list_optional_sfi.begin(), list_optional_sfi.end(), [](auto e) { return !e.has_value(); });
+    list_optional_sfi.erase (std::remove_if (list_optional_sfi.begin(), list_optional_sfi.end(),
+            [](auto e) { return !e.has_value(); }),
+        list_optional_sfi.end());
     std::transform (list_optional_sfi.begin(), list_optional_sfi.end(), std::back_inserter(sfil), [](auto e) {
         // the sound group directory name defines the sound name, replace/fix it up
         e.value().setName (SoundName (e.value().getPath().parent_path().filename()));
@@ -119,7 +121,7 @@ SoundInfoMap proc_merge_SFIL_into_SIM (SoundInfoMap sim, SoundFileInfoList sfil)
 SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
     SoundInfoMap map;
     auto [files, directories] = split_files_directories (paths);
-    std::remove_if (files.begin(), files.end(), isMapPath);
+    files.erase (std::remove_if (files.begin(), files.end(), isMapPath), files.end());
 
     std::list<DirectoryEntries> list_de_files, list_de_directories;
     std::list<PathList> list_pl_directories;
@@ -129,7 +131,9 @@ SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
     { // handle files
         std::list<std::optional<SoundFileInfo>> list_optional_sfi_files;
         std::transform (files.begin(), files.end(), std::back_inserter(list_optional_sfi_files), proc_sound_file_de);
-        std::remove_if (list_optional_sfi_files.begin(), list_optional_sfi_files.end(), [](auto e) { return !e.has_value(); });
+        list_optional_sfi_files.erase (std::remove_if (list_optional_sfi_files.begin(), list_optional_sfi_files.end(),
+                [](auto e) { return !e.has_value(); }),
+            list_optional_sfi_files.end());
         std::transform (list_optional_sfi_files.begin(), list_optional_sfi_files.end(), std::back_inserter(sfil_files), [](auto e) {
             return SoundFileInfoList { e.value() }; // wrap into a single-entry SFIL
         });
@@ -155,7 +159,3 @@ Repository gen_Repository (const std::filesystem::path& p) {
     std::sort (repository.get().begin(), repository.get().end(), cmp_ifspath);
     return repository;
 }
-
-/*SoundInfoMap gen_SoundInfoMap (std::filesystem::path p) {
-
-}*/

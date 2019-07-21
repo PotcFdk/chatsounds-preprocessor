@@ -13,6 +13,9 @@
 int Launch_DiffUpdate(const bool &open_ext)
 {
     Repository repository = gen_Repository (SOUNDPATH);
+
+    std::remove_if (repository.get().begin(), repository.get().end(), [](auto& e) { return e.path().filename() != "hitler_downfall"; });
+
     SoundInfoMap sim = gen_SoundInfoMap (repository.get().front());
 
     for (auto& s : sim) {
