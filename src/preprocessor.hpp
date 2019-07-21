@@ -6,5 +6,6 @@
 
 Repository gen_Repository (const std::filesystem::path&);
 SoundInfoMap gen_SoundInfoMap (const DirectoryEntries&);
+SoundInfoMap gen_SoundInfoMap (const std::filesystem::directory_entry&);
 
 #endif

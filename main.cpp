@@ -13,16 +13,7 @@
 int Launch_DiffUpdate(const bool &open_ext)
 {
     Repository repository = gen_Repository (SOUNDPATH);
-
-/*
-    for (auto& e : repository) {
-        for (auto& _e : e) {
-            std::cout << _e << std::endl;
-        }
-    }
-*/
-
-    gen_SoundInfoMap (*(repository.begin()));
+    gen_SoundInfoMap (repository.get().front());
 
     return -1;
 }

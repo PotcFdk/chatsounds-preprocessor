@@ -148,12 +148,13 @@ SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
     return map;
 }
 
+SoundInfoMap gen_SoundInfoMap (const std::filesystem::directory_entry& de) {
+    return gen_SoundInfoMap (scandir (de));
+}
+
 Repository gen_Repository (const std::filesystem::path& p) {
-    DirectoryEntries sound_set_dirs = scandir (p);
-    std::sort (sound_set_dirs.begin(), sound_set_dirs.end(), cmp_ifspath);
-    
-    Repository repository;
-    std::transform (sound_set_dirs.begin(), sound_set_dirs.end(), std::back_inserter(repository), scandir);
+    Repository repository (scandir (p));
+    std::sort (repository.get().begin(), repository.get().end(), cmp_ifspath);
     return repository;
 }
 
