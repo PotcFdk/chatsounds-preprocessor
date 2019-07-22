@@ -150,9 +150,9 @@ SoundInfoMap proc_apply_AM_to_SIM (SoundInfoMap sim, const AliasMap& am) {
     return sim;
 }
 
-SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
+SoundInfoMap proc_make_SIM (const DirectoryEntries& entries) {
     SoundInfoMap map;
-    auto [files, directories] = split_files_directories (paths);
+    auto [files, directories] = split_files_directories (entries);
     files.erase (std::remove_if (files.begin(), files.end(), isMapPath), files.end());
 
     std::list<DirectoryEntries> list_de_files, list_de_directories;
@@ -183,7 +183,15 @@ SoundInfoMap gen_SoundInfoMap (const DirectoryEntries& paths) {
 }
 
 SoundInfoMap gen_SoundInfoMap (const std::filesystem::directory_entry& de) {
-    return gen_SoundInfoMap (scandir (de));
+    SoundInfoMap sim = proc_make_SIM (scandir (de));
+    std::filesystem::directory_entry am_file (de.path() / "map.txt");
+    if (am_file.is_regular_file()) {
+        std::optional<AliasMap> am = proc_alias_file (am_file);
+        if (am.has_value()) {
+            sim = proc_apply_AM_to_SIM (sim, am.value());
+        }
+    }
+    return sim;
 }
 
 Repository gen_Repository (const std::filesystem::path& p) {
