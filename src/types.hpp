@@ -90,6 +90,14 @@ using Repository = fluent::NamedType<DirectoryEntries, struct RepositoryParamete
 typedef std::unordered_map<std::string, int> SoundCache;
 typedef std::unordered_map<std::string, bool> MissingSoundCacheFiles;
 
+class stringByLine : public std::string {};
+// TODO: don't use inline here
+inline std::istream& operator>>(std::istream& is, stringByLine& output)
+{
+   std::getline(is, output, '\n');
+   return is;
+}
+
 class CPP_AVFormatContext {
     AVFormatContext *ptr;
     public: CPP_AVFormatContext() {

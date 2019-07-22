@@ -39,44 +39,46 @@ std::optional<SoundFileInfo> proc_sound_file_de (const std::filesystem::director
     return proc_sound_file (de.path());
 }
 
-AliasMap parseAliasMap (std::istream& input) {
+std::optional<AliasMap> parseAliasMap (std::istream& input) {
+    if (input.fail()) return std::nullopt;
+
     AliasMap aliasmap;
-    if (input.fail()) return aliasmap;
 
-    std::string ln, source, alias, options;
-    bool replace;
-    int items_size;
-    while (std::getline(input, ln)) {
-        boost::algorithm::trim(ln);
+    std::list<std::string> lines;
 
-        if (!boost::algorithm::starts_with(ln, "#")) {
-            std::vector<std::string> items;
-            boost::algorithm::split(items, ln, match_char(';'));
-            items_size = items.size();
-            if ((items_size == 2 || items_size == 3) // source and alias exist
-                && items.at(0).length() > 0 && items.at(1).length() > 0) // source and alias have content
-            {
-                source = boost::algorithm::trim_copy(items.at(0));
-                alias  = boost::algorithm::trim_copy(items.at(1));
+    //TODO: std::equal
+    std::copy_if (std::istream_iterator<stringByLine>(input), std::istream_iterator<stringByLine>(), std::back_inserter (lines),
+        [](auto& s) { return !boost::algorithm::starts_with(std::string(s), "#"); });
 
-                boost::algorithm::to_lower(source);
-                boost::algorithm::to_lower(alias);
+    std::list<std::vector<std::string>> l_items;
+    std::transform (lines.begin(), lines.end(), std::back_inserter (l_items), [](std::string& input) {
+        std::vector<std::string> items;
+        boost::algorithm::split (items, input, match_char(';'));
+        std::transform (items.begin(), items.end(), items.begin(), [](auto& i) { boost::algorithm::trim (i); return i; });
+        return items;
+    });
 
-                replace = false; // default behavior: don't replace, just alias
+    l_items.erase (std::remove_if (l_items.begin(), l_items.end(), [](auto& items) {
+        return (items.size() != 2 && items.size() != 3) // wrong number of options
+            || !items[0].length() || !items[1].length(); // source or destination is empty
+    }), l_items.end());
 
-                if (items_size == 3) {
-                    options = boost::algorithm::trim_copy(items.at(2));
-                    boost::algorithm::to_lower(options);
-                    if (boost::algorithm::contains(options, "replace"))
-                        replace = true;
-                }
+    std::transform (l_items.begin(), l_items.end(), std::back_inserter (aliasmap), [](auto& items) {
+        std::transform (items.begin(), items.end(), items.begin(), [](auto& item) {
+            boost::algorithm::to_lower (item);
+            return item;
+        });
 
-                aliasmap.emplace_back (AliasMapEntry (SoundName (source), SoundName (alias), replace));
-            }
-        }
-    }
+        return AliasMapEntry (
+            SoundName (items.at(0)), SoundName (items.at(1)),
+            items.size() == 3 && boost::algorithm::contains (items.at(2), "replace")
+        );
+    });
 
-    return aliasmap;
+    if (aliasmap.size())
+        return aliasmap;
+    else
+        return std::nullopt;
 }
 
 std::optional<AliasMap> proc_alias_file (const std::filesystem::path& path) {

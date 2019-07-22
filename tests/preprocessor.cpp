@@ -20,15 +20,18 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
         WHEN ("the input is empty") {
             std::istringstream iss("");
             std::istream& input(iss);
-            THEN ("an empty map is returned") {
-                REQUIRE (parseAliasMap (input).size() == 0);
+            THEN ("no map is returned") {
+                REQUIRE_FALSE (parseAliasMap (input).has_value());
             }
         }
         WHEN ("the input contains one mixed-case entry") {
             std::istringstream iss("N_SrC; n_DST");
             std::istream& input(iss);
             THEN ("a map with size 1 is returned") {
-                AliasMap map = parseAliasMap (input);
+                std::optional<AliasMap> o_map = parseAliasMap (input);
+                REQUIRE (o_map.has_value());
+                AliasMap map = o_map.value();
+
                 REQUIRE (map.size() == 1);
                 AND_THEN ("the map contains the correct all-lowercase entry") {
                     REQUIRE (map.front().getSource() == SoundName ("n_src"));
@@ -41,7 +44,10 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
             std::istringstream iss("N_SrC1; n_DST1\nn_srC2 ;N_dst2;  \nn_src3 ; n_dst3\nN_SRC4;N_DST4; ");
             std::istream& input(iss);
             THEN ("a map with size 4 is returned") {
-                AliasMap map = parseAliasMap (input);
+                std::optional<AliasMap> o_map = parseAliasMap (input);
+                REQUIRE (o_map.has_value());
+                AliasMap map = o_map.value();
+
                 REQUIRE (map.size() == 4);
                 AND_THEN ("the map contains the correct all-lowercase entries") {
                     REQUIRE (map.front().getSource() == SoundName ("n_src1"));
@@ -66,7 +72,10 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
             std::istringstream iss("N_SrC1; n_DST1; \nn_srC2 ;N_dst2; replace \nn_src3 ; n_dst3\nN_SRC4;N_DST4; re ra replaceee repl ");
             std::istream& input(iss);
             THEN ("a map with size 4 is returned") {
-                AliasMap map = parseAliasMap (input);
+                std::optional<AliasMap> o_map = parseAliasMap (input);
+                REQUIRE (o_map.has_value());
+                AliasMap map = o_map.value();
+
                 REQUIRE (map.size() == 4);
                 AND_THEN ("the map contains the correct entries") {
                     REQUIRE (map.front().getSource() == SoundName ("n_src1"));
@@ -91,7 +100,10 @@ SCENARIO ("ParseAliasMap", "[preprocessor]") {
             std::istringstream iss("aasssdf,dd,s,;;;;,\n;;\n#a;n;a\n;\nN_SrC1; n_DST1; \nASDF\n\nn_srC2 ;N_dst2; replace \n####\n;;;;;\nn_src3 ; n_dst3\nN_SRC4;N_DST4; re ra replaceee repl ");
             std::istream& input(iss);
             THEN ("a map with size 4 is returned") {
-                AliasMap map = parseAliasMap (input);
+                std::optional<AliasMap> o_map = parseAliasMap (input);
+                REQUIRE (o_map.has_value());
+                AliasMap map = o_map.value();
+
                 REQUIRE (map.size() == 4);
                 AND_THEN ("the map contains the correct entries") {
                     REQUIRE (map.front().getSource() == SoundName ("n_src1"));

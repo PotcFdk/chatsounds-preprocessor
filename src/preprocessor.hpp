@@ -4,6 +4,8 @@
 #include <filesystem.hpp>
 #include "types.hpp"
 
+std::optional<AliasMap> parseAliasMap (std::istream&);
+
 SoundName get_sound_name_from_SFIL (const SoundFileInfoList&);
 
 SoundInfoMap proc_merge_SFIL_into_SIM (SoundInfoMap, SoundFileInfoList);
