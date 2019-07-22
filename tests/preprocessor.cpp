@@ -233,6 +233,31 @@ SCENARIO ("proc_apply_AME_to_SIM", "[preprocessor]") {
             }
         }
     }
+    
+    GIVEN ("a SoundInfoMap with one entry 'exist'") {
+        SoundInfoMap map {
+            std::make_pair (SoundName ("exist"), 
+                SoundFileInfoList { SoundFileInfo (std::filesystem::path ("some/dir/exist.ogg"), Duration (100), Samplerate (44100)) }
+            )
+        };
+        REQUIRE (map.find (SoundName ("exist")) != map.end());
+        
+        AND_GIVEN ("an AliasMapEntry that renames 'exist' to 'new'") {
+            AliasMapEntry ame (SoundName ("exist"), SoundName ("new"), true);
+
+            WHEN ("the AliasMapEntry is applied to the SoundInfoMap") {
+                map = proc_apply_AME_to_SIM (map, ame);
+                THEN ("the rename is applied successfully") {
+                    REQUIRE (map.find (SoundName ("exist")) == map.end());
+                    REQUIRE (map.find (SoundName ("new"))   != map.end());
+                    
+                    AND_THEN ("get_sound_name_from_SFIL returns the correct renamed sound name") {
+                        REQUIRE (get_sound_name_from_SFIL (map[SoundName ("new")]) == SoundName ("new"));
+                    } 
+                }
+            }
+        }
+    }
 }
 
 

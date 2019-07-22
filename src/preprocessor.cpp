@@ -121,6 +121,13 @@ SoundInfoMap proc_merge_SFIL_into_SIM (SoundInfoMap sim, SoundFileInfoList sfil)
 SoundInfoMap proc_apply_AME_to_SIM (SoundInfoMap sim, const AliasMapEntry& ame) {
     SoundName source (ame.getSource()), destination (ame.getDestination());
     if (sim.find (source) != sim.end()) { // found source in map
+        // change the name of all sound entry objects to the new destination name
+        std::transform (sim[source].begin(), sim[source].end(), sim[source].begin(), [destination](auto& e) {
+            e.setName (destination);
+            return e;
+        });
+
+        // actually manipulate the SoundInfoMap to physically move the sound entries to their new home
         if (sim.find (destination) != sim.end()) { // found destination in map -> merge
             std::copy(sim[source].begin(), sim[source].end(), std::back_insert_iterator<SoundFileInfoList>(sim[destination]));
             if (ame.getReplace())
