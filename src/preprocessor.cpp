@@ -99,7 +99,7 @@ SoundFileInfoList proc_sound_group (const std::filesystem::directory_entry& de) 
         list_optional_sfi.end());
     std::transform (list_optional_sfi.begin(), list_optional_sfi.end(), std::back_inserter(sfil), [](auto e) {
         // the sound group directory name defines the sound name, replace/fix it up
-        e.value().setName (SoundName (e.value().getPath().parent_path().filename()));
+        e.value().setName (SoundName (e.value().getPath().parent_path().filename().string()));
         return e.value();
     });
     return sfil;

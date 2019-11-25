@@ -1,7 +1,7 @@
 #include <src/file_util.hpp>
 #include <catch2/catch.hpp>
 
-using Catch::Matchers::Equals, Catch::Matchers::Contains;
+using Catch::Matchers::Equals, Catch::Matchers::UnorderedEquals, Catch::Matchers::Contains;
 
 SCENARIO ("scandir behaves correctly", "[file_util]") {
     GIVEN ("a valid directory with entries") {
@@ -19,7 +19,7 @@ SCENARIO ("scandir behaves correctly", "[file_util]") {
                 };
                 REQUIRE_THAT (pl, Contains(existing_entries));
                 AND_THEN ("the result contains only the existing entries") {
-                    REQUIRE_THAT (pl, Equals(existing_entries));
+                    REQUIRE_THAT (pl, UnorderedEquals(existing_entries));
                 }
             }
         }
@@ -34,7 +34,7 @@ SCENARIO ("split_files_directories behaves correctly", "[file_util]") {
         std::transform (entries.begin(), entries.end(), std::back_inserter(_pl), [](std::filesystem::directory_entry& p) {
             return p.path().filename();
         });
-        REQUIRE_THAT (_pl, Equals (PathList {
+        REQUIRE_THAT (_pl, UnorderedEquals (PathList {
             "file1", "file2", "dir1", "dir2"
         }));
 

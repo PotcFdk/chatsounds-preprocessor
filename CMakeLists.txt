@@ -30,7 +30,7 @@ project (chatsounds-preprocessor)
 SET (CMAKE_CXX_STANDARD 17)
 SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -ggdb -O0 -pthread")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
-SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib -Wl,-z,now")
+SET (CMAKE_EXE_LINKER_FLAGS "-Wl,--rpath=.,--rpath=lib")
 
 message (STATUS "        ______            ,                            _   __")
 message (STATUS "       / ___  |          /|                           | | /  \\\\")

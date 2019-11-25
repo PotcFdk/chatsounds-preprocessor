@@ -4,8 +4,10 @@
 /.kdev4
 /chatsounds-preprocessor.kdev4
 /.vscode
+/.idea
 
 # External Libraries / Header Files
+/catch2
 /include/*
 /lib/*
 /libs/*
@@ -14,6 +16,7 @@
 /obj
 /bin
 /build
+/cmake-build-debug
 
 # Noisy development-related files
 /version.h
