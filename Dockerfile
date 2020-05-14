@@ -3,8 +3,7 @@ FROM m0rf30/arch-yay
 USER user
 
 RUN yay -Sy
-RUN yay -S --noconfirm --needed base-devel boost cmake wget
-RUN yay -S --noconfirm --needed lame yasm
+RUN yay -S --noconfirm --needed base-devel boost cmake lame wget yasm
 
 WORKDIR /preprocessor/
 COPY --chown=user:user .git /.git
@@ -28,5 +27,13 @@ WORKDIR /preprocessor/build/
 RUN cmake ..
 RUN make
 
-ENTRYPOINT [ "/preprocessor/build/chatsounds-preprocessor" ]
+USER root
+RUN mv chatsounds-preprocessor /usr/bin/
 
+WORKDIR /chatsounds
+RUN rm -rf /preprocessor
+RUN chown -R user:user /chatsounds
+
+USER user
+
+ENTRYPOINT [ "/usr/bin/chatsounds-preprocessor" ]
