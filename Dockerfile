@@ -24,7 +24,7 @@ RUN chown -R user:user /preprocessor
 USER user
 WORKDIR /preprocessor/build/
 
-RUN cmake ..
+RUN cmake -DCMAKE_BUILD_TYPE=Release ..
 RUN make
 
 USER root
