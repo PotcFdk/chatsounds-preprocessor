@@ -1,39 +1,28 @@
-FROM m0rf30/arch-yay
+# build image
 
-USER user
-
-RUN yay -Sy
-RUN yay -S --noconfirm --needed base-devel boost cmake lame wget yasm
+FROM alpine:3.12
+RUN apk --no-cache add git build-base cmake boost-dev lame-dev yasm
 
 WORKDIR /preprocessor/
-COPY --chown=user:user .git /.git
-
-COPY --chown=user:user libs/setup-ffmpeg-native.sh ./libs/
-WORKDIR /preprocessor/libs/
-RUN ./setup-ffmpeg-native.sh
-WORKDIR /preprocessor/
-
-COPY --chown=user:user cmake ./cmake
-COPY --chown=user:user res ./res
-COPY --chown=user:user *.hpp* CMakeLists.txt *.cpp ./
-
-USER root
+COPY .git /.git
+COPY cmake ./cmake
+COPY res ./res
+COPY *.hpp* CMakeLists.txt *.cpp ./
 RUN mkdir build
-RUN chown -R user:user /preprocessor
 
-USER user
+COPY libs/setup-ffmpeg-native.sh ./libs/
+WORKDIR /preprocessor/libs/
+RUN /bin/sh ./setup-ffmpeg-native.sh
+
 WORKDIR /preprocessor/build/
-
 RUN cmake -DCMAKE_BUILD_TYPE=Release ..
 RUN make
 
-USER root
 RUN mv chatsounds-preprocessor /usr/bin/
 
-WORKDIR /chatsounds
-RUN rm -rf /preprocessor
-RUN chown -R user:user /chatsounds
+# production
 
-USER user
-
+FROM alpine:3.12
+RUN apk --no-cache add boost
+COPY --from=0 /usr/bin/chatsounds-preprocessor /usr/bin
 ENTRYPOINT [ "/usr/bin/chatsounds-preprocessor" ]
